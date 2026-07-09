@@ -592,10 +592,10 @@ If any tile uses absolute heights, then tile heights are set constant across a d
       This indicates if surface tile heights relative to the gridbox mean should be read from a specified file or namelist.
 
       TRUE
-       The variable will be read from a file if the input grid consists of more than location.
+       The variable will be read from a file.
 
       FALSE
-       The variable will be read from a namelist if the input grid is for a single location.
+       The variable will be read from a namelist.
 
 .. nml:group:: Only used if :nml:mem:`use_file` = TRUE
 
@@ -611,7 +611,7 @@ If any tile uses absolute heights, then tile heights are set constant across a d
       :type: character
       :default: 'surf_hgt'
 
-      The name of the variable containing surface tile heights relative to the gridbox mean. In the file, the variable must have a single levels dimension of size ``nsurft`` called :nml:mem:`JULES_INPUT_GRID::tile_dim_name`.
+      The name of the variable containing surface tile heights (in metres) relative to the gridbox mean. In the file, the variable must have a single levels dimension of size ``nsurft`` called :nml:mem:`JULES_INPUT_GRID::tile_dim_name`.
 
 .. nml:group:: Only used if :nml:mem:`use_file` = FALSE
 
@@ -620,7 +620,7 @@ If any tile uses absolute heights, then tile heights are set constant across a d
       :type: real(nsurft)
       :default: None
 
-      Surface tile heights relative to the gridbox mean for a single location.
+      Surface tile heights relative to the gridbox mean (m). The same values are used for all points in the domain.
 
 
 ``JULES_Z_LAND`` namelist members
@@ -645,9 +645,9 @@ This is an optional namelist and only used if any surface tile has :nml:mem:`JUL
    This indicates if the elevation of the forcing data should be read from a file or from a namelist.
 
    TRUE
-      The variable will be read from a file if the input grid consists of more than location.
+      The variable will be read from a file.
    FALSE
-      The variable will be read from a namelist if the input grid is for a single location.
+      The variable will be read from a namelist.
 
 .. nml:group:: Used if :nml:mem:`JULES_Z_LAND::use_file` = TRUE
 
@@ -663,7 +663,7 @@ This is an optional namelist and only used if any surface tile has :nml:mem:`JUL
       :type: character
       :default: 'z_land'
 
-      The name of the variable containing the elevation of the forcing data. In the file, the variable must have no level dimensions and no time dimensions.
+      The name of the variable containing the elevation of the forcing data (in metres). In the file, the variable must have no level dimensions and no time dimensions.
 
 .. nml:group:: Used if :nml:mem:`JULES_Z_LAND::use_file` = FALSE
 
@@ -672,7 +672,7 @@ This is an optional namelist and only used if any surface tile has :nml:mem:`JUL
       :type: real
       :default: None
 
-      Elevation of the forcing data for a single location.
+      Elevation of the forcing data (m). The same is used for all points in the domain.
 
 Example
 ~~~~~~~
