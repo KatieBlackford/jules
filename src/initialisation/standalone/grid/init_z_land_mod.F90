@@ -26,6 +26,8 @@ USE c_elevate, ONLY: l_elev_absolute_height, z_land_io, surf_hgt_band
 
 USE ancil_info, ONLY: nsurft, land_pts
 
+USE jules_water_resources_mod, ONLY: l_nonlocal_abstraction, l_water_resources
+
 USE theta_field_sizes, ONLY: t_i_length
 
 USE errormessagelength_mod, ONLY: errormessagelength
@@ -40,9 +42,11 @@ IMPLICIT NONE
 
 !-----------------------------------------------------------------------------
 ! Description:
-!   Initialises the elevation of the forcing data elevation if any tile has
-!   an absolute height above sea-level.
+!   Initialises the elevation of the forcing data, which is required if any
+!   tile has an absolute height above sea-level.
 !   Tile heights are set to be spatially invarient.
+!   This elevation is also used as an indicator of surface elevation in some
+!   configurations of the water resource code.
 !
 ! Code Owner: Please refer to ModuleLeaders.txt
 !
@@ -84,15 +88,17 @@ use_file = .TRUE.      ! Default is for every variable to be read from file
 FILE=''                ! Empty file name
 z_land_name = 'z_land' ! Default variable name
 
+! Initialise values.
+jules_vars_data%z_land_ij(:,:) = 0.0
+
 !-----------------------------------------------------------------------------
 ! If some tiles have absolute heights then the gridbox mean height must also
 ! be provided. The mean height is also needed in some configurations of the
 ! water resource model.
 !-----------------------------------------------------------------------------
-! Initialise values.
-jules_vars_data%z_land_ij(:,:) = 0.0
 
-IF ( ANY(l_elev_absolute_height) ) THEN
+IF ( ANY(l_elev_absolute_height) .OR.                                          &
+     ( l_water_resources .AND. l_nonlocal_abstraction ) ) THEN
 
   !---------------------------------------------------------------------------
   !   Read namelist
@@ -109,33 +115,44 @@ IF ( ANY(l_elev_absolute_height) ) THEN
 
   !---------------------------------------------------------------------------
   !   Set values derived from namelist and verify for consistency.
-  !   First provide the user with information.
   !---------------------------------------------------------------------------
-  CALL log_info("init_z_land","Some tiles have  " //                           &
+
+  !---------------------------------------------------------------------------
+  ! First deal with the elevation bands.
+  !---------------------------------------------------------------------------
+  IF ( ANY(l_elev_absolute_height) ) THEN
+
+    ! Provide the user with information.
+    CALL log_info("init_z_land","Some tiles have  " //                         &
          "absolute heights above sea-level - see l_elev_absolute_height " //   &
          "for which where l_elev_absolute_height is false, surf_hgt "    //    &
          "offsets can only be applied as global to that tile "           //    &
          "type (usually these are 0, indicating no offset from "         //    &
          "the gridbox mean).")
 
-  !-------------------------------------------------------------------------
-  !   Check that a value for the elevation bands have been set
-  !-------------------------------------------------------------------------
-  IF ( ANY(surf_hgt_band(1:nsurft)  == rmdi)  ) THEN
-    CALL log_fatal("init_z_land", "Some tiles have absolute "   //           &
-                   "heights above sea-level but some or all values for " //  &
-                   "elevation bands are missing. Set a " //                  &
-                   "value for surf_hgt_band in the "//                       &
-                   "JULES_Z_LAND namelist")
-  END IF
+    !-------------------------------------------------------------------------
+    !   Check that values for the elevation bands have been set
+    !-------------------------------------------------------------------------
+    IF ( ANY(surf_hgt_band(1:nsurft)  == rmdi)  ) THEN
+      CALL log_fatal("init_z_land", "Some tiles have absolute "   //           &
+                     "heights above sea-level but some or all values for " //  &
+                     "elevation bands are missing. Set a " //                  &
+                     "value for surf_hgt_band in the "//                       &
+                     "JULES_Z_LAND namelist")
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   Set the heights (relative or absolute) to be constant across a domain.
+    !---------------------------------------------------------------------------
+    DO n = 1,nsurft
+      jules_vars_data%surf_hgt_surft(:,n) = surf_hgt_band(n)
+    END DO
+
+  END IF  !  ANY(l_elev_absolute_height)
 
   !---------------------------------------------------------------------------
-  !   Set the heights (relative or absolute) to be constant across a domain.
+  ! Set the gridbox mean heights of the forcing data.
   !---------------------------------------------------------------------------
-  DO n = 1,nsurft
-    jules_vars_data%surf_hgt_surft(:,n) = surf_hgt_band(n)
-  END DO
-
   IF ( use_file ) THEN
 
     !-------------------------------------------------------------------------
@@ -186,7 +203,7 @@ IF ( ANY(l_elev_absolute_height) ) THEN
 
   END IF  !  use_file
 
-END IF
+END IF   !  l_elev_absolute_height OR  l_nonlocal_abstraction
 
 RETURN
 

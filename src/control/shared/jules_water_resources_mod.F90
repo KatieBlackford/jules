@@ -120,7 +120,14 @@ LOGICAL ::                                                                     &
     ! .TRUE.  = consider (explicit) water transfers
     ! .FALSE. = do not consider transfers
 
+! Other switches.
 LOGICAL ::                                                                     &
+  l_nonlocal_abstraction = .FALSE.,                                            &
+    ! Switch controlling non-local abstraction.
+    ! .TRUE. = Water can be abstracted from gridboxes other than from where
+    !          a demand originates.
+    ! .FALSE. = Demand can only be met by water abstracted form the local
+    !           gridbox.
   l_prioritise = .FALSE.
     ! Switch controlling prioritisation beween demands.
     ! .TRUE.  = rank demands in priority order
@@ -167,7 +174,8 @@ CHARACTER(LEN=name_len) ::                                                     &
 !------------------------------------------------------------------------------
 NAMELIST  / jules_water_resources /                                            &
 ! Shared
-    l_prioritise, l_water_domestic, l_water_environment, l_water_industry,     &
+    l_nonlocal_abstraction, l_prioritise, l_water_domestic,                    &
+    l_water_environment, l_water_industry,                                     &
     l_water_irrigation, l_water_livestock, l_water_resources,                  &
     l_water_transfers, nr_gwater_model, nstep_water_res, priority,             &
     rf_domestic, rf_industry, rf_livestock, sfc_water_factor,                  &
