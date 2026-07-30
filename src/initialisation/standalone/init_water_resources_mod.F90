@@ -39,7 +39,8 @@ USE jules_water_resources_mod, ONLY:                                           &
 ! imported procedures
   check_jules_water_resources,                                                 &
 ! imported variables
-  l_prioritise, l_water_domestic, l_water_environment, l_water_industry,       &
+  l_nonlocal_abstraction, l_prioritise, l_water_domestic,                      &
+  l_water_environment, l_water_industry,                                       &
   l_water_irrigation, l_water_livestock, l_water_resources, l_water_transfers, &
   no_model, nr_gwater_last, nr_gwater_model, nr_gwater_use, nwater_use,        &
   priority, partition_ancil, partition_calc_from_stores, partition_method,     &
@@ -121,7 +122,7 @@ END IF
 CALL check_jules_water_resources( l_top )
 
 !------------------------------------------------------------------------------
-! Print some human friendly summary information about the selected options.
+! Print some human-friendly summary information about the selected options.
 !------------------------------------------------------------------------------
 
 IF ( l_water_resources ) THEN
@@ -162,6 +163,10 @@ IF ( l_water_resources ) THEN
     END DO
   ELSE
     CALL log_info( RoutineName, "Demands are not prioritised." )
+  END IF
+
+  IF ( l_nonlocal_abstraction ) THEN
+    CALL log_info( RoutineName, "Non-local abstractions are permitted." )
   END IF
 
   SELECT CASE ( nr_gwater_model )

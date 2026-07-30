@@ -64,9 +64,10 @@ TYPE :: jules_vars_data_type
     ! Could potentially be replaced by local-scope variables
 
   REAL(KIND=real_jlslsm), ALLOCATABLE :: z_land_ij(:,:)
-    ! Elevation of forcing data
+    ! Elevation of forcing data (m)
 
   REAL(KIND=real_jlslsm), ALLOCATABLE :: z_land_land(:)
+    ! Elevation of forcing data, for land points (m)
 
   REAL(KIND=real_jlslsm), ALLOCATABLE :: surf_hgt_surft(:,:)
     ! Height of tile above mean gridbox surface (m)

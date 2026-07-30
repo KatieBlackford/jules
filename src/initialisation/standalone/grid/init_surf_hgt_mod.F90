@@ -58,9 +58,7 @@ LOGICAL :: zero_height  ! T - set height at all points to 0.0
                         ! F - read height from file
 LOGICAL :: use_file     ! T - the variable uses the file
                         ! F - the variable is set using a constant value
-CHARACTER(LEN=max_file_name_len) :: FILE  ! If input grid has more than one
-                                          ! point, read heights from this
-                                          ! file
+CHARACTER(LEN=max_file_name_len) :: FILE  ! Name of file to be used
 CHARACTER(LEN=max_sdf_name_len) :: surf_hgt_name  ! Use the variable with
                                                   ! this name
 CHARACTER(LEN=errormessagelength) :: iomessage
@@ -69,7 +67,7 @@ NAMELIST  / jules_surf_hgt/ zero_height, l_elev_absolute_height, use_file,     &
                           FILE, surf_hgt_name, surf_hgt_io
 
 !-----------------------------------------------------------------------------
-! Initialise
+! Initialise some of the variables that are read from the namelist. 
 !-----------------------------------------------------------------------------
 zero_height               = .TRUE.  ! Default is to use zero height everywhere
 l_elev_absolute_height(:) = .FALSE. ! T - tiles have absolute heights above
@@ -85,7 +83,6 @@ surf_hgt_name             = ''      ! Empty variable name.
 !-----------------------------------------------------------------------------
 CALL log_info("init_surf_hgt", "Reading JULES_SURF_HGT namelist...")
 
-! First, we read the namelist
 READ(namelist_unit, NML = jules_surf_hgt, IOSTAT = ERROR, IOMSG = iomessage)
 IF ( ERROR /= 0 )                                                              &
   CALL log_fatal("init_surf_hgt",                                              &
@@ -103,7 +100,7 @@ IF ( l_aggregate ) THEN
   zero_height = .TRUE.
 END IF
 
-! If zero height is selected, then that is all we have to do
+! If zero height is selected, all we have to do is set heights to zero.
 IF ( zero_height ) THEN
   CALL log_info("init_surf_hgt",                                               &
                 "Zero height selected - setting all heights to 0.0")
@@ -118,10 +115,10 @@ IF ( .NOT. ANY(l_elev_absolute_height) ) THEN
 
   IF ( use_file ) THEN
     !-------------------------------------------------------------------------
-    ! If we have a grid, set heights from the specified file
+    ! Set heights using the specified file
     !-------------------------------------------------------------------------
     CALL log_info("init_surf_hgt",                                             &
-                  "Data is on a grid - reading surf_hgt from file " //         &
+                  "Reading surf_hgt from file " //                             &
                   TRIM(FILE))
 
     !   Check that a file name was provided
@@ -133,13 +130,17 @@ IF ( .NOT. ANY(l_elev_absolute_height) ) THEN
 
   ELSE
     !-------------------------------------------------------------------------
-    ! If we are reading data at a single point, read height from the namelist
+    ! Use heights from the namelist
+    ! It is assumed that values provided (or the initial values) are valid.
     !-------------------------------------------------------------------------
-    ! Copy their values into the model arrays
+    ! Copy values into the model arrays
     CALL log_info("init_surf_hgt",                                             &
-                  "Data is at a single point - reading surf_hgt from " //      &
+                  "surf_hgt will be set using " //                             &
                   "surf_hgt_io in namelist JULES_SURF_HGT")
-    jules_vars_data%surf_hgt_surft(1,:) = surf_hgt_io(1:nsurft)
+    ! Copy the tile values to each land point.
+    jules_vars_data%surf_hgt_surft(:,:)                                        &
+       = SPREAD( surf_hgt_io(1:nsurft), 2,                                     &
+                 SIZE( jules_vars_data%surf_hgt_surft,1) )
 
   END IF
 END IF

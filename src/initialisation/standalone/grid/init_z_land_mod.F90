@@ -26,6 +26,8 @@ USE c_elevate, ONLY: l_elev_absolute_height, z_land_io, surf_hgt_band
 
 USE ancil_info, ONLY: nsurft, land_pts
 
+USE jules_water_resources_mod, ONLY: l_nonlocal_abstraction, l_water_resources
+
 USE theta_field_sizes, ONLY: t_i_length
 
 USE errormessagelength_mod, ONLY: errormessagelength
@@ -40,9 +42,11 @@ IMPLICIT NONE
 
 !-----------------------------------------------------------------------------
 ! Description:
-!   Initialises the elevation of the forcing data elevation if any tile has
-!   an absolute height above sea-level.
+!   Initialises the elevation of the forcing data, which is required if any
+!   tile has an absolute height above sea-level.
 !   Tile heights are set to be spatially invarient.
+!   This elevation is also used as an indicator of surface elevation in some
+!   configurations of the water resource code.
 !
 ! Code Owner: Please refer to ModuleLeaders.txt
 !
@@ -78,111 +82,128 @@ NAMELIST  / jules_z_land/ use_file, FILE, z_land_io, z_land_name,              &
 INTEGER :: i, j, l, n
 
 !-----------------------------------------------------------------------------
-! Initialise
+! Initialise some variables that will be read from namelist.
 !-----------------------------------------------------------------------------
 use_file = .TRUE.      ! Default is for every variable to be read from file
-FILE=''       ! Empty file name
+FILE=''                ! Empty file name
 z_land_name = 'z_land' ! Default variable name
+
+! Initialise values.
+jules_vars_data%z_land_ij(:,:) = 0.0
 
 !-----------------------------------------------------------------------------
 ! If some tiles have absolute heights then the gridbox mean height must also
-! be provided. For a single point, this can come from the namelist, otherwise
-! we need to use the file option
+! be provided. The mean height is also needed in some configurations of the
+! water resource model.
 !-----------------------------------------------------------------------------
-jules_vars_data%z_land_ij(:,:) = 0.0
 
-IF ( ANY(l_elev_absolute_height) ) THEN
+IF ( ANY(l_elev_absolute_height) .OR.                                          &
+     ( l_water_resources .AND. l_nonlocal_abstraction ) ) THEN
 
   !---------------------------------------------------------------------------
   !   Read namelist
   !---------------------------------------------------------------------------
   CALL log_info("init_z_land", "Reading JULES_Z_LAND namelist...")
 
-  !   First, we read the namelist
   READ(namelist_unit, NML = jules_z_land, IOSTAT = ERROR, IOMSG = iomessage)
-  IF ( ERROR /= 0 )                                                            &
+  IF ( ERROR /= 0 ) THEN
     CALL log_fatal("init_z_land",                                              &
                  "Error reading namelist JULES_Z_LAND " //                     &
                  "(IOSTAT=" // TRIM(to_string(ERROR)) // " IOMSG=" //          &
                  TRIM(iomessage) // ")")
+  END IF
 
   !---------------------------------------------------------------------------
-  !   Set values derived from namelist and verify for consistency
+  !   Set values derived from namelist and verify for consistency.
   !---------------------------------------------------------------------------
-  CALL log_info("init_z_land","Some tiles have  " //                           &
-         "absolute heights above sea-level, see l_elev_absolute_height " //    &
-         "for which. Where l_elev_absolute_height is false, surf_hgt "   //    &
+
+  !---------------------------------------------------------------------------
+  ! First deal with the elevation bands.
+  !---------------------------------------------------------------------------
+  IF ( ANY(l_elev_absolute_height) ) THEN
+
+    ! Provide the user with information.
+    CALL log_info("init_z_land","Some tiles have  " //                         &
+         "absolute heights above sea-level - see l_elev_absolute_height " //   &
+         "for which where l_elev_absolute_height is false, surf_hgt "    //    &
          "offsets can only be applied as global to that tile "           //    &
          "type (usually these are 0, indicating no offset from "         //    &
          "the gridbox mean).")
 
-  !---------------------------------------------------------------------------
-  !   Set the heights (relative or absolute) to be constant across a domain.
-  !---------------------------------------------------------------------------
-  DO n = 1,nsurft
-    jules_vars_data%surf_hgt_surft(:,n) = surf_hgt_band(n)
-  END DO
+    !-------------------------------------------------------------------------
+    !   Check that values for the elevation bands have been set
+    !-------------------------------------------------------------------------
+    IF ( ANY(surf_hgt_band(1:nsurft)  == rmdi)  ) THEN
+      CALL log_fatal("init_z_land", "Some tiles have absolute "   //           &
+                     "heights above sea-level but some or all values for " //  &
+                     "elevation bands are missing. Set a " //                  &
+                     "value for surf_hgt_band in the "//                       &
+                     "JULES_Z_LAND namelist")
+    END IF
+
+    !---------------------------------------------------------------------------
+    !   Set the heights (relative or absolute) to be constant across a domain.
+    !---------------------------------------------------------------------------
+    DO n = 1,nsurft
+      jules_vars_data%surf_hgt_surft(:,n) = surf_hgt_band(n)
+    END DO
+
+  END IF  !  ANY(l_elev_absolute_height)
 
   !---------------------------------------------------------------------------
-  !   If we have a grid, set gridbox mean heights from the specified file
+  ! Set the gridbox mean heights of the forcing data.
   !---------------------------------------------------------------------------
   IF ( use_file ) THEN
 
-    CALL log_info("init_z_land",                                               &
-                  "Data is on a grid - reading z_land from file " //           &
-                  TRIM(FILE))
+    !-------------------------------------------------------------------------
+    ! Read gridbox mean heights from the specified file.
+    !-------------------------------------------------------------------------
 
-    IF ( ERROR > 0 )                                                           &
-      CALL log_fatal("init_z_land", "Error allocating z_land")
+    CALL log_info("init_z_land",                                               &
+                  "Reading z_land from file " // TRIM(FILE))
 
     !     Check that a file name was provided
-    IF ( LEN_TRIM(FILE) == 0 )                                                 &
+    IF ( LEN_TRIM(FILE) == 0 ) THEN
       CALL log_fatal("init_z_land", "No file name provided for gridbox " //    &
                      "mean heights")
+    END IF
 
     CALL fill_variables_from_file(FILE,                                        &
                                   [ 'z_land_land' ], [ z_land_name ],          &
                                   is_climatology = [ .FALSE. ] )
 
+    ! Use values from the 1-D land points variable to set the 2-D variable.
     DO l = 1,land_pts
       j = ( ainfo_data%land_index(l) - 1 ) / t_i_length + 1
       i = ainfo_data%land_index(l) - (j-1) * t_i_length
       jules_vars_data%z_land_ij(i,j) = jules_vars_data%z_land_land(l)
     END DO
 
-    !-------------------------------------------------------------------------
-    !     If we are reading data at a single point, read height from the
-    !     namelist
-    !-------------------------------------------------------------------------
   ELSE
 
+    !-------------------------------------------------------------------------
+    ! .NOT. use_file
+    ! Use the provided value for all points.
+    !-------------------------------------------------------------------------
     CALL log_info("init_z_land",                                               &
-                  "Data is at a single point - reading z_land from " //        &
+                  "z_land will be set using " //                               &
                   "z_land_io in namelist JULES_Z_LAND")
-    jules_vars_data%z_land_ij(1,1) = z_land_io
 
     !-------------------------------------------------------------------------
     !     Check that a value for the gridbox height has been set
     !-------------------------------------------------------------------------
-    IF ( z_land_io == rmdi )                                                   &
+    IF ( z_land_io == rmdi ) THEN
       CALL log_fatal("init_z_land", "Some tiles have absolute "   //           &
                      "heights above sea-level but no value for "  //           &
                      "z_land has been provided. Set a value for " //           &
                      "z_land in the JULES_Z_LAND namelist")
+    END IF
 
-    !-------------------------------------------------------------------------
-    !     Check that a value for the elevation bands have been set
-    !-------------------------------------------------------------------------
-    IF ( ANY(surf_hgt_band(1:nsurft)  == rmdi)  )                              &
-      CALL log_fatal("init_z_land", "Some tiles have absolute "   //           &
-                     "heights above sea-level but no values for " //           &
-                     "elevation bands have been provided. Set a " //           &
-                     "value for surf_hgt_band in the "//                       &
-                     "JULES_Z_LAND namelist")
+    jules_vars_data%z_land_ij(:,:) = z_land_io
 
-  END IF
+  END IF  !  use_file
 
-END IF
+END IF   !  l_elev_absolute_height OR  l_nonlocal_abstraction
 
 RETURN
 
