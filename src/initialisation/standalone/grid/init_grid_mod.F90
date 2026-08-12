@@ -45,6 +45,11 @@ USE init_land_frac_mod,  ONLY: init_land_frac
 USE init_surf_hgt_mod,   ONLY: init_surf_hgt
 USE init_z_land_mod,     ONLY: init_z_land
 
+USE jules_fields_mod, ONLY: ainfo, jules_vars
+
+USE ancil_info, ONLY: ancil_info_assoc
+USE jules_vars_mod, ONLY: jules_vars_assoc
+
 !TYPE definitions
 USE crop_vars_mod, ONLY: crop_vars_data_type
 USE p_s_parms,     ONLY: psparms_data_type
@@ -151,6 +156,8 @@ CALL init_model_grid_arrays(crop_vars_data,psparms_data,top_pdm_data,          &
                             lake_data, forcing_data, imgn_drive_data,          &
                             imgn_vars_data, rivers_data, chemvars_data,        &
                             water_resources_data, wtrac_jls_data)
+CALL ancil_info_assoc(ainfo, ainfo_data)
+CALL jules_vars_assoc(jules_vars, jules_vars_data)
 ! The following use arrays allocated in previous call.
 CALL init_surf_hgt(jules_vars_data)
 CALL init_z_land(ainfo_data,jules_vars_data)

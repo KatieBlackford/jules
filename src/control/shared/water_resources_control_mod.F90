@@ -49,10 +49,13 @@ CHARACTER(LEN=*), PARAMETER, PRIVATE ::                                        &
 ! These are needed at full size only on the master task.
 !------------------------------------------------------------------------------
 INTEGER, ALLOCATABLE ::                                                        &
-  priority_order_global(:,:)
+  priority_order_global(:,:),
     ! Priorities of water demands at each gridpoint, in order of decreasing
     ! priority. Values are the index in multi-sector arrays. This is a 2-D
     ! array to allow for spatial variation of priorities (not yet supported).
+&
+  nonlocal_network_global(:,:)
+    ! Network of gridcells from which non local abstractions can pull from.
 
 REAL(KIND=real_jlslsm), ALLOCATABLE ::                                         &
   conveyance_loss_global(:),                                                   &
@@ -146,7 +149,7 @@ USE jules_surface_types_mod, ONLY: ncpft, ntype
 USE jules_water_resources_mod, ONLY:                                           &
   l_have_groundwater, l_have_surface_water, l_water_irrigation,                &
   nstep_water_res, n_sw_source, nwater_use, sw_river_source, use_irrigation,   &
-  water_res_count
+  water_res_count, l_nonlocal_abstraction
 
 USE model_grid_mod, ONLY: global_land_pts
 
@@ -367,6 +370,9 @@ IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 !------------------------------------------------------------------------------
 IF ( timestep_number == 1 ) THEN
   CALL initialise_water_resources( priority_order )
+  IF ( l_nonlocal_abstraction ) THEN
+    CALL initialise_nonlocal_abstraction( land_index, nonlocal_network_global )
+  END IF
 END IF
 
 !------------------------------------------------------------------------------
@@ -648,6 +654,91 @@ END IF  !  l_prioritise
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
 END SUBROUTINE initialise_water_resources
+
+!##############################################################################
+!##############################################################################
+
+SUBROUTINE initialise_nonlocal_abstraction( land_index, nonlocal_network )
+
+!------------------------------------------------------------------------------
+! Description:
+!   Initialise network of gridcells available for nonlocal abstraction
+!------------------------------------------------------------------------------
+
+USE ancil_info, ONLY: land_pts
+
+USE jules_water_resources_mod, ONLY: 
+&
+  dlat, dlon, n_nonlocal_max, nonlocal_abs_max
+
+
+IMPLICIT NONE
+
+!------------------------------------------------------------------------------
+! Array arguments with INTENT(OUT)
+!------------------------------------------------------------------------------
+INTEGER, INTENT(OUT) ::                                                        &
+  priority_order(land_pts,nwater_use)
+    ! Water demands at each gridpoint, in order of decreasing priority.
+    ! Values are the index in multi-sector arrays.
+
+CHARACTER(LEN=*), PARAMETER :: RoutineName = 'INITIALISE_WATER_RESOURCES'
+
+!------------------------------------------------------------------------------
+! Local scalar variables.
+!------------------------------------------------------------------------------
+INTEGER ::                                                                     &
+  error_status,                                                                &
+    ! Error status.
+  i
+    ! Loop counter.
+
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
+!------------------------------------------------------------------------------
+!end of header
+IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
+
+
+IF ( l_prioritise ) THEN
+  ! Set sector priorities at each location.
+  ! At present these are the same at all locations and it is simply a case
+  ! of setting values based on the priority variable.
+  ! In future this information might come from an ancillary file.
+  ! The ancillary could list the sector names and use grids of numerical
+  ! values [indicating the index in the name variable]. The names can be
+  ! checked against those known to this code, to ensure the ancil uses a
+  ! scheme that is consistent with this code.
+  DO i = 1,nwater_use
+    SELECT CASE ( priority(i) )
+    CASE ( name_domestic )
+      priority_order(:,i) = use_domestic
+    CASE ( name_environment )
+      priority_order(:,i) = use_environment
+    CASE ( name_industry )
+      priority_order(:,i) = use_industry
+    CASE ( name_irrigation )
+      priority_order(:,i) = use_irrigation
+    CASE ( name_livestock )
+      priority_order(:,i) = use_livestock
+    CASE ( name_transfers )
+      priority_order(:,i) = use_transfers
+    CASE DEFAULT
+      ! Set error status to show a fatal error.
+      error_status = 101
+      CALL ereport ( RoutineName, error_status,                                &
+                     "Priority name not valid: " // TRIM(priority(i)) )
+    END SELECT
+  END DO
+
+END IF  !  l_prioritise
+
+IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
+RETURN
+END SUBROUTINE initialise_nonlocal_abstraction
 
 !##############################################################################
 !##############################################################################

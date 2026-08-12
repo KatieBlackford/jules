@@ -146,9 +146,12 @@ INTEGER ::                                                                     &
   nstep_water_res = imdi,                                                      &
     ! Timestep length for water resource model (number of "main model"
     ! timesteps).
-  partition_method = imdi
+  partition_method = imdi,                                                     &
     ! Chosen method for the target for the fraction of demand that will be
     ! met from surface water.
+  nonlocal_abs_max = imdi
+    ! Number of gridboxes distant from which nonlocal abstractions are allowed
+    ! to source water from to meet gridbox demands 
 
 REAL(KIND=real_jlslsm) ::                                                      &
   rf_domestic = rmdi,                                                          &
@@ -160,9 +163,13 @@ REAL(KIND=real_jlslsm) ::                                                      &
   rf_livestock = rmdi,                                                         &
     ! Fraction of water for livestock use that is returned after abstraction
     ! and use.
-  sfc_water_factor = rmdi
+  sfc_water_factor = rmdi,                                                     &
     ! The weight (a factor) applied to surface water when calculating the
     ! target for the fraction of demand that will be met from surface water.
+  dlat = rmdi,                                                                 &
+    ! Land gridbox size in latitude (degrees).
+  dlon = rmdi 
+    ! Land gridbox size in longitude(degrees).
 
 CHARACTER(LEN=name_len) ::                                                     &
   priority(nwater_use_max) = 'xxx'
@@ -179,7 +186,7 @@ NAMELIST  / jules_water_resources /                                            &
     l_water_irrigation, l_water_livestock, l_water_resources,                  &
     l_water_transfers, nr_gwater_model, nstep_water_res, priority,             &
     rf_domestic, rf_industry, rf_livestock, sfc_water_factor,                  &
-    partition_method
+    partition_method, nonlocal_abs_max, dlat, dlon
 
 !------------------------------------------------------------------------------
 ! Variables below here are not in the namelist.
@@ -190,6 +197,10 @@ INTEGER ::                                                                     &
     ! Number of surface water sources.
   nwater_use = imdi,                                                           &
     ! Number of water resource sectors that are considered.
+  n_nonlocal_max = imdi,                                                       &
+    ! Maximum number of gridboxes from which nonlocal abstractions are allowed
+    ! to source water (calculated from nonlocal_abs_max)
+
   !----------------------------------------------------------------------------
   ! The following indices should be initialised to zero, to indicate that a
   ! water use is not considered.
@@ -301,7 +312,7 @@ IF ( l_water_resources ) THEN
     CALL ereport ( RoutineName, error_status,                                  &
                    "nstep_water_res must be at least 1." )
   END IF
-
+  
   !----------------------------------------------------------------------------
   ! Count the number of sectors to be considered, and check that at least one
   ! is selected.
@@ -484,6 +495,35 @@ IF ( l_water_resources ) THEN
                    "Invalid value for nr_gwater_model (non-renewable " //      &
                    "groundwater option)." )
   END SELECT
+
+  !-----------------------------------------------------------------------------
+  ! Check options for nonlocal abstractions
+  !-----------------------------------------------------------------------------
+  IF ( l_nonlocal_abstraction ) THEN
+    IF ( nonlocal_abs_max == imdi ) THEN
+      CALL ereport ( RoutineName, error_status,                               &
+                   "nonlocal_abs_max not found." )
+    END IF
+    IF ( nonlocal_abs_max <= 0 ) THEN
+      CALL ereport ( RoutineName, error_status,                               &
+                   "nonlocal_abs_max must be greater than 0." )
+    END IF
+    
+    n_nonlocal_max = 0
+    DO i = 1, nonlocal_abs_max
+      n_nonlocal_max = n_nonlocal_max + 8 * i
+    END DO
+    WRITE(*,*) 'n_nonlocal_max = ', n_nonlocal_max
+    
+    IF ( dlat == rmdi ) THEN
+    CALL ereport ( RoutineName, error_status,                                 &
+                 "dlat not found." )
+    END IF
+    IF ( dlon == rmdi ) THEN
+      CALL ereport ( RoutineName, error_status,                               &
+                 "dlon not found." )
+    END IF
+  END IF
 
 END IF  !  l_water_resources
 
@@ -729,6 +769,9 @@ CALL jules_print('jules_water_resources_mod',lineBuffer)
 WRITE(lineBuffer,"(A,L1)") ' l_prioritise = ', l_prioritise
 CALL jules_print('jules_water_resources_mod',lineBuffer)
 
+WRITE(lineBuffer,"(A,L1)") ' l_nonlocal_abstraction = ', l_prioritise
+CALL jules_print('jules_water_resources_mod',lineBuffer)
+
 DO i = 1, nwater_use_max
   WRITE(lineBuffer,"(A,I0,A,A)") ' priority(',i,') = ', TRIM( priority(i) )
   CALL jules_print('jules_water_resources_mod',lineBuffer)
@@ -753,6 +796,15 @@ WRITE(lineBuffer,"(A,G11.4E2)") ' sfc_water_factor = ', sfc_water_factor
 CALL jules_print('jules_water_resources_mod',lineBuffer)
 
 WRITE(lineBuffer,"(A,I0)") ' partition_method = ', partition_method
+CALL jules_print('jules_water_resources_mod',lineBuffer)
+
+WRITE(lineBuffer,"(A,I0)") ' nonlocal_abs_max = ', nonlocal_abs_max
+CALL jules_print('jules_water_resources_mod',lineBuffer)
+
+WRITE(lineBuffer,"(A,G11.4E2)") ' dlat = ', dlat
+CALL jules_print('jules_water_resources_mod',lineBuffer)
+
+WRITE(lineBuffer,"(A,G11.4E2)") ' dlon = ', dlon
 CALL jules_print('jules_water_resources_mod',lineBuffer)
 
 CALL jules_print('jules_water_resources_mod',                                  &
@@ -797,9 +849,9 @@ CHARACTER(LEN=errormessagelength) :: iomessage
 
 ! set number of each type of variable in my_namelist type
 INTEGER, PARAMETER :: no_of_types = 4
-INTEGER, PARAMETER :: n_int = 3
-INTEGER, PARAMETER :: n_real = 4
-INTEGER, PARAMETER :: n_log = 8
+INTEGER, PARAMETER :: n_int = 4
+INTEGER, PARAMETER :: n_real = 6
+INTEGER, PARAMETER :: n_log = 9
 INTEGER, PARAMETER :: n_chars = nwater_use_max * name_len
 
 TYPE :: my_namelist
@@ -807,10 +859,14 @@ TYPE :: my_namelist
   INTEGER :: nr_gwater_model
   INTEGER :: nstep_water_res
   INTEGER :: partition_method
+  INTEGER :: nonlocal_abs_max
   REAL(KIND=real_jlslsm) :: rf_domestic
   REAL(KIND=real_jlslsm) :: rf_livestock
   REAL(KIND=real_jlslsm) :: rf_industry
   REAL(KIND=real_jlslsm) :: sfc_water_factor
+  REAL(KIND=real_jlslsm) :: dlat
+  REAL(KIND=real_jlslsm) :: dlon
+  LOGICAL :: l_nonlocal_abstraction
   LOGICAL :: l_prioritise
   LOGICAL :: l_water_domestic
   LOGICAL :: l_water_environment
@@ -840,44 +896,52 @@ IF (mype == 0) THEN
   CALL check_iostat(errorstatus, "namelist jules_water_resources",             &
                     iomessage)
 
-  my_nml % nr_gwater_model     = nr_gwater_model
-  my_nml % nstep_water_res     = nstep_water_res
-  my_nml % partition_method    = partition_method
-  my_nml % l_prioritise        = l_prioritise
-  my_nml % l_water_domestic    = l_water_domestic
-  my_nml % l_water_environment = l_water_environment
-  my_nml % l_water_industry    = l_water_industry
-  my_nml % l_water_irrigation  = l_water_irrigation
-  my_nml % l_water_livestock   = l_water_livestock
-  my_nml % l_water_resources   = l_water_resources
-  my_nml % l_water_transfers   = l_water_transfers
-  my_nml % rf_domestic         = rf_domestic
-  my_nml % rf_livestock        = rf_livestock
-  my_nml % rf_industry         = rf_industry
-  my_nml % sfc_water_factor    = sfc_water_factor
-  my_nml % priority            = priority
+  my_nml % nr_gwater_model        = nr_gwater_model
+  my_nml % nstep_water_res        = nstep_water_res
+  my_nml % partition_method       = partition_method
+  my_nml % nonlocal_abs_max       = nonlocal_abs_max
+  my_nml % l_nonlocal_abstraction = l_nonlocal_abstraction
+  my_nml % l_prioritise           = l_prioritise
+  my_nml % l_water_domestic       = l_water_domestic
+  my_nml % l_water_environment    = l_water_environment
+  my_nml % l_water_industry       = l_water_industry
+  my_nml % l_water_irrigation     = l_water_irrigation
+  my_nml % l_water_livestock      = l_water_livestock
+  my_nml % l_water_resources      = l_water_resources
+  my_nml % l_water_transfers      = l_water_transfers
+  my_nml % rf_domestic            = rf_domestic
+  my_nml % rf_livestock           = rf_livestock
+  my_nml % rf_industry            = rf_industry
+  my_nml % sfc_water_factor       = sfc_water_factor
+  my_nml % dlat                   = dlat
+  my_nml % dlon                   = dlon
+  my_nml % priority               = priority
 
 END IF
 
 CALL mpl_bcast(my_nml,1,mpl_nml_type,0,my_comm,icode)
 
 IF (mype /= 0) THEN
-  nr_gwater_model     = my_nml % nr_gwater_model
-  nstep_water_res     = my_nml % nstep_water_res
-  partition_method    = my_nml % partition_method
-  l_water_domestic    = my_nml % l_water_domestic
-  l_prioritise        = my_nml % l_prioritise
-  l_water_environment = my_nml % l_water_environment
-  l_water_industry    = my_nml % l_water_industry
-  l_water_irrigation  = my_nml % l_water_irrigation
-  l_water_livestock   = my_nml % l_water_livestock
-  l_water_resources   = my_nml % l_water_resources
-  l_water_transfers   = my_nml % l_water_transfers
-  rf_domestic         = my_nml % rf_domestic
-  rf_livestock        = my_nml % rf_livestock
-  rf_industry         = my_nml % rf_industry
-  sfc_water_factor    = my_nml % sfc_water_factor
-  priority            = my_nml % priority
+  nr_gwater_model        = my_nml % nr_gwater_model
+  nstep_water_res        = my_nml % nstep_water_res
+  partition_method       = my_nml % partition_method
+  nonlocal_abs_max       = my_nml % nonlocal_abs_max
+  l_nonlocal_abstraction = my_nml % l_nonlocal_abstraction
+  l_prioritise           = my_nml % l_prioritise
+  l_water_domestic       = my_nml % l_water_domestic
+  l_water_environment    = my_nml % l_water_environment
+  l_water_industry       = my_nml % l_water_industry
+  l_water_irrigation     = my_nml % l_water_irrigation
+  l_water_livestock      = my_nml % l_water_livestock
+  l_water_resources      = my_nml % l_water_resources
+  l_water_transfers      = my_nml % l_water_transfers
+  rf_domestic            = my_nml % rf_domestic
+  rf_livestock           = my_nml % rf_livestock
+  rf_industry            = my_nml % rf_industry
+  sfc_water_factor       = my_nml % sfc_water_factor
+  dlat                   = my_nml % dlat
+  dlon                   = my_nml % dlon
+  priority               = my_nml % priority
 END IF
 
 CALL mpl_type_free(mpl_nml_type,icode)
