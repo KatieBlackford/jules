@@ -49,11 +49,10 @@ CHARACTER(LEN=*), PARAMETER, PRIVATE ::                                        &
 ! These are needed at full size only on the master task.
 !------------------------------------------------------------------------------
 INTEGER, ALLOCATABLE ::                                                        &
-  priority_order_global(:,:),
+  priority_order_global(:,:),                                                  &
     ! Priorities of water demands at each gridpoint, in order of decreasing
     ! priority. Values are the index in multi-sector arrays. This is a 2-D
     ! array to allow for spatial variation of priorities (not yet supported).
-&
   nonlocal_network_global(:,:)
     ! Network of gridcells from which non local abstractions can pull from.
 
@@ -498,6 +497,7 @@ IF ( l_water_res_call ) THEN
   !----------------------------------------------------------------------------
   IF ( is_master_task() ) THEN
     CALL water_resources_drive( global_land_pts, priority_order_global,        &
+           nonlocal_network_global,                                            &
            conv_loss_frac_global, demand_accum_global,                         &
            demand_unmet_global, gw_abstracted_global, gw_avail_global,         &
            gw_nr_abstracted_global, sfc_water_frac_global,                     &
@@ -662,36 +662,60 @@ SUBROUTINE initialise_nonlocal_abstraction( land_index, nonlocal_network )
 
 !------------------------------------------------------------------------------
 ! Description:
-!   Initialise network of gridcells available for nonlocal abstraction
+!   Build nonlocal abstraction network
 !------------------------------------------------------------------------------
 
 USE ancil_info, ONLY: land_pts
 
-USE jules_water_resources_mod, ONLY: 
-&
-  dlat, dlon, n_nonlocal_max, nonlocal_abs_max
+USE jules_fields_mod, ONLY: jules_vars
 
+USE jules_water_resources_mod, ONLY:                                          &
+  dlat, dlon, n_nonlocal_max, nonlocal_abs_max 
+
+USE missing_data_mod, ONLY: imdi 
+
+USE model_grid_mod, ONLY: global_land_pts, latitude, longitude 
+
+USE parallel_mod, ONLY: gather_land_field, is_master_task 
+
+USE theta_field_sizes, ONLY: row_length=>t_i_length, rows=>t_j_length
 
 IMPLICIT NONE
 
 !------------------------------------------------------------------------------
-! Array arguments with INTENT(OUT)
+! Array arguments with INTENT(IN)
 !------------------------------------------------------------------------------
-INTEGER, INTENT(OUT) ::                                                        &
-  priority_order(land_pts,nwater_use)
-    ! Water demands at each gridpoint, in order of decreasing priority.
-    ! Values are the index in multi-sector arrays.
+INTEGER, INTENT(IN) ::                                                        &
+  land_index(land_pts)
+    ! Index of land points
 
-CHARACTER(LEN=*), PARAMETER :: RoutineName = 'INITIALISE_WATER_RESOURCES'
+!------------------------------------------------------------------------------
+! Array arguments with INTENT(IN OUT)
+!------------------------------------------------------------------------------
+INTEGER, ALLOCATABLE, INTENT(IN OUT) ::                                       &
+  nonlocal_network(:,:)
+    ! List of gridbox numbers that nonlocal abstractions can draw from
+
+CHARACTER(LEN=*), PARAMETER :: RoutineName = 'INITIALISE_NONLOCAL_ABSTRACTION'
 
 !------------------------------------------------------------------------------
 ! Local scalar variables.
 !------------------------------------------------------------------------------
-INTEGER ::                                                                     &
-  error_status,                                                                &
-    ! Error status.
-  i
-    ! Loop counter.
+INTEGER :: i, j, k, l, x, y, land_size
+
+REAL(KIND=real_jlslsm) :: current_lat, current_lon, distance_lat, distance_lon 
+REAL(KIND=real_jlslsm) :: current_el
+
+!------------------------------------------------------------------------------
+! Local array variables.
+!------------------------------------------------------------------------------
+REAL(KIND=real_jlslsm) ::                                                     &
+  lat_land(land_pts), lon_land(land_pts), elev_land(land_pts) 
+    ! Latitude, longitude and elevation at land points (current task)
+
+REAL(KIND=real_jlslsm), ALLOCATABLE ::                                        &
+  lat_global(:), lon_global(:), elev_global(:)
+    ! latitude, longitude and elevation at land points (global grid)
 
 ! Dr Hook variables
 INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
@@ -702,39 +726,82 @@ REAL(KIND=jprb)               :: zhook_handle
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
+PRINT*, 'DEBUG: initialise_nonlocal_abstraction called'
+!------------------------------------------------------------------------------
+! Build task-local land-point arrays of latitude, longitude and elevation.
+!------------------------------------------------------------------------------
+DO l = 1, land_pts
+  y = ( land_index(l) - 1 ) / row_length + 1
+  x = land_index(l) - (y - 1) * row_length
+  lat_land(l)  = latitude(x,y)
+  lon_land(l)  = longitude(x,y)
+  elev_land(l) = jules_vars%z_land_ij(x,y)
+END DO
 
-IF ( l_prioritise ) THEN
-  ! Set sector priorities at each location.
-  ! At present these are the same at all locations and it is simply a case
-  ! of setting values based on the priority variable.
-  ! In future this information might come from an ancillary file.
-  ! The ancillary could list the sector names and use grids of numerical
-  ! values [indicating the index in the name variable]. The names can be
-  ! checked against those known to this code, to ensure the ancil uses a
-  ! scheme that is consistent with this code.
-  DO i = 1,nwater_use
-    SELECT CASE ( priority(i) )
-    CASE ( name_domestic )
-      priority_order(:,i) = use_domestic
-    CASE ( name_environment )
-      priority_order(:,i) = use_environment
-    CASE ( name_industry )
-      priority_order(:,i) = use_industry
-    CASE ( name_irrigation )
-      priority_order(:,i) = use_irrigation
-    CASE ( name_livestock )
-      priority_order(:,i) = use_livestock
-    CASE ( name_transfers )
-      priority_order(:,i) = use_transfers
-    CASE DEFAULT
-      ! Set error status to show a fatal error.
-      error_status = 101
-      CALL ereport ( RoutineName, error_status,                                &
-                     "Priority name not valid: " // TRIM(priority(i)) )
-    END SELECT
+!------------------------------------------------------------------------------
+! Gather to the global grid 
+!------------------------------------------------------------------------------
+IF ( is_master_task() ) THEN
+  land_size = global_land_pts
+ELSE
+  land_size = 1
+END IF
+
+ALLOCATE( lat_global(land_size) )
+ALLOCATE( lon_global(land_size) )
+ALLOCATE( elev_global(land_size) )
+
+CALL gather_land_field( lat_land, lat_global )
+CALL gather_land_field( lon_land, lon_global )
+CALL gather_land_field( elev_land, elev_global )
+
+!------------------------------------------------------------------------------
+! Allocate the network array. 
+!------------------------------------------------------------------------------
+ALLOCATE( nonlocal_network(land_size,n_nonlocal_max) )
+nonlocal_network(:,:) = imdi
+
+!------------------------------------------------------------------------------
+! Build the network 
+!------------------------------------------------------------------------------
+IF ( is_master_task() ) THEN
+
+  DO l = 1, global_land_pts
+    k = 1
+    current_lat = lat_global(l)
+    current_lon = lon_global(l)
+    current_el  = elev_global(l)
+
+    ! loop through expanding "rings" of neighouring gridboxes, and if gridbox is  
+    ! within radius then add to nonlocal_network
+    DO j = 1, nonlocal_abs_max
+      ! Add a small amount to the distance to ensure all gridboxes within radius
+      ! are included
+      distance_lat = dlat * j + dlat / 10.0
+      distance_lon = dlon * j + dlon / 10.0
+
+      DO i = 1, global_land_pts
+        ! If this point is "local" gridbox then cycle
+        IF ( i == l ) CYCLE
+        IF ( ABS(lat_global(i) - current_lat) < distance_lat .AND.             &
+             ABS(lon_global(i) - current_lon) < distance_lon ) THEN
+          ! If gridbox is already in nonlocal_network (from earlier j loop) then cycle
+          IF ( ANY( nonlocal_network(l,:) == i ) ) CYCLE
+          ! If gridbox is at a lower elevation than the current box then cycle
+          IF ( elev_global(i) < current_el ) CYCLE
+          IF ( k > n_nonlocal_max ) EXIT
+          nonlocal_network(l,k) = i
+          k = k + 1
+        END IF
+      END DO
+    END DO
   END DO
 
-END IF  !  l_prioritise
+END IF
+
+DEALLOCATE( elev_global )
+DEALLOCATE( lon_global )
+DEALLOCATE( lat_global )
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

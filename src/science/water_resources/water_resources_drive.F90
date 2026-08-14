@@ -42,6 +42,7 @@ CONTAINS
 !#############################################################################
 
 SUBROUTINE water_resources_drive( global_land_pts, priority_order,             &
+                                  nonlocal_network,                            &
                                   conv_loss_frac, demand_accum,                &
                                   demand_unmet, gw_abstracted, gw_avail,       &
                                   gw_nr_abstracted, sfc_water_frac,            &
@@ -56,9 +57,12 @@ SUBROUTINE water_resources_drive( global_land_pts, priority_order,             &
 
 USE abstract_local_mod, ONLY: abstract_local, abstract_local_gw
 
-USE jules_water_resources_mod, ONLY: l_have_groundwater, l_water_irrigation,   &
+USE abstract_nonlocal_mod, ONLY: abstract_nonlocal
+
+USE jules_water_resources_mod, ONLY: l_have_groundwater,                       &
+      l_nonlocal_abstraction, l_water_irrigation,                              &
       n_sw_source, nwater_use, partition_calc_from_stores, partition_method,   &
-      use_environment, use_irrigation
+      use_environment, use_irrigation, n_nonlocal_max
 
 IMPLICIT NONE
 
@@ -73,9 +77,11 @@ INTEGER, INTENT(IN) ::                                                         &
 ! Array arguments with INTENT(IN)
 !------------------------------------------------------------------------------
 INTEGER, INTENT(IN) ::                                                         &
-  priority_order(global_land_pts,nwater_use)
+  priority_order(global_land_pts,nwater_use),                                  &
     ! Priorities of water demands at each gridpoint, in order of decreasing
     ! priority. Values are the index in multi-sector arrays.
+  nonlocal_network(global_land_pts,n_nonlocal_max)
+    ! List of gridbox numbers that nonlocal abstractions can draw from.
 
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   conv_loss_frac(global_land_pts),                                             &
@@ -145,8 +151,10 @@ REAL(KIND=real_jlslsm) ::                                                      &
     ! Water that is lost during conveyance, for each water use (kg).
   demand_sw(global_land_pts,nwater_use),                                       &
     ! Demand for water from surface water, for each water use (kg).
-  demand_gw(global_land_pts,nwater_use)
+  demand_gw(global_land_pts,nwater_use),                                       &
     ! Demand for water from groundwater, for each water use (kg).
+  demand_nl(global_land_pts,nwater_use)
+    ! Demand for water to be met from non-local surface water (kg).
 
 ! Dr Hook variables
 INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
@@ -176,11 +184,19 @@ CALL split_demands( global_land_pts, demand_accum, sfc_water_frac, demand_sw,  &
                     demand_gw )
 
 !------------------------------------------------------------------------------
+! If considering non-local abstractions, work out how much of the surface-water
+! demand should instead be met from non-local surface water. This reduces
+! demand_sw in place, so that local abstraction below only sees the local
+! share of the demand.
+!------------------------------------------------------------------------------
+demand_nl(:,:) = 0.0
+IF ( l_nonlocal_abstraction ) THEN
+  CALL nonlocal_abstraction_frac( global_land_pts, nonlocal_network, sw_avail, &
+                                  demand_sw, demand_nl )
+END IF
+
+!------------------------------------------------------------------------------
 ! Initialise the unmet demand to equal the total demand for local abstraction.
-! At present the code only supports local abstraction - but in future it is
-! expected that water can be demanded from remote surface water, in which case
-! demand_sw would be amended here to only include the demand for local
-! abstraction.
 !------------------------------------------------------------------------------
 demand_unmet(:,:) = demand_gw(:,:) + demand_sw(:,:)
 
@@ -192,9 +208,14 @@ CALL abstract_local( global_land_pts, priority_order, demand_gw,               &
                      gw_nr_abstracted, sw_abstracted, sw_avail )
 
 !------------------------------------------------------------------------------
-! In future implicit transfers will abstract from non-local water at this
-! point in the code.
+! If considering non-local abstraction, abstract from non-local water.
 !------------------------------------------------------------------------------
+IF ( l_nonlocal_abstraction ) THEN
+  demand_unmet(:,:) = demand_unmet(:,:) + demand_nl(:,:)
+
+  CALL abstract_nonlocal( global_land_pts, priority_order, nonlocal_network,   &
+                         demand_nl, demand_unmet, sw_abstracted, sw_avail )
+END IF
 
 !------------------------------------------------------------------------------
 ! Try to meet any remaining demand from local groundwater.
@@ -248,6 +269,138 @@ END IF
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
 END SUBROUTINE water_resources_drive
+
+!#############################################################################
+!#############################################################################
+
+SUBROUTINE nonlocal_abstraction_frac( global_land_pts, nonlocal_network,       &
+                                      sw_avail, demand_sw, demand_nl )
+
+!------------------------------------------------------------------------------
+! Description:
+!   Calculate the fraction of surface-water demand to be met locally versus
+!   from non-local sources via implicit transfers, based on local and
+!   non-local water availability and demand.
+!------------------------------------------------------------------------------
+
+USE jules_water_resources_mod, ONLY:                                           &
+  l_water_environment, l_water_transfers, use_environment, use_transfers,      &
+  nwater_use, n_sw_source, n_nonlocal_max
+
+USE missing_data_mod, ONLY: imdi
+
+IMPLICIT NONE
+
+!------------------------------------------------------------------------------
+! Scalar arguments with INTENT(IN)
+!------------------------------------------------------------------------------
+INTEGER, INTENT(IN) ::                                                        &
+  global_land_pts
+    ! Number of land points in the full model grid.
+
+!------------------------------------------------------------------------------
+! Array arguments with INTENT(IN)
+!------------------------------------------------------------------------------
+INTEGER, INTENT(IN) ::                                                        &
+  nonlocal_network(global_land_pts,n_nonlocal_max)
+    ! List of gridbox numbers that nonlocal abstractions can draw from.
+
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+  sw_avail(global_land_pts,n_sw_source)
+    ! Surface water available for abstraction at the start of the water
+    ! resource timestep (kg).
+
+!------------------------------------------------------------------------------
+! Array arguments with INTENT(IN OUT)
+!------------------------------------------------------------------------------
+REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
+  demand_sw(global_land_pts,nwater_use)
+    ! On entry: total surface-water demand. On exit: the part to be met
+    ! locally (reduced by demand_nl).
+
+!------------------------------------------------------------------------------
+! Array arguments with INTENT(OUT)
+!------------------------------------------------------------------------------
+REAL(KIND=real_jlslsm), INTENT(OUT) ::                                        &
+  demand_nl(global_land_pts,nwater_use)
+    ! Surface-water demand to be met from non-local gridboxes (kg).
+
+!------------------------------------------------------------------------------
+! Local parameters.
+!------------------------------------------------------------------------------
+CHARACTER(LEN=*), PARAMETER :: RoutineName = 'NONLOCAL_ABSTRACTION_FRAC'
+
+!------------------------------------------------------------------------------
+! Local scalar variables.
+!------------------------------------------------------------------------------
+INTEGER :: i, l, n, k
+
+REAL(KIND=real_jlslsm) ::                                                      &
+  nl_avail, l_avail, nl_demand, l_demand, local_abs
+    ! Non-local and local water availability and demand, used to calculate      &
+    ! fraction of demand to be met locally (local_abs)
+    
+!------------------------------------------------------------------------------
+! Local array variables.
+!------------------------------------------------------------------------------
+REAL(KIND=real_jlslsm) :: nl_frac(nwater_use)
+  ! Maximum fraction of each demand type that can be met non-locally (1 or 0).
+
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
+!------------------------------------------------------------------------------
+!end of header
+IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
+
+demand_nl(:,:) = 0.0
+nl_frac(:)     = 1.0
+
+! Specify that environmental demand and transfers can only be met from local
+! sources.
+IF ( l_water_environment ) nl_frac(use_environment) = 0.0
+IF ( l_water_transfers )   nl_frac(use_transfers)   = 0.0
+
+! Loop through landpoints
+DO l = 1, global_land_pts
+  nl_avail  = 0.0
+  l_avail   = SUM( sw_avail(l,:) )
+  nl_demand = 0.0
+  l_demand  = DOT_PRODUCT( demand_sw(l,:), nl_frac(:) )
+  n = 0
+
+  IF ( l_demand /= 0.0 ) THEN
+    
+    ! Loop through nonlocal network
+    DO i = 1, n_nonlocal_max
+      k = nonlocal_network(l,i)
+      IF ( k == imdi ) CYCLE
+      nl_avail  = nl_avail + SUM( sw_avail(k,:) )
+      nl_demand = nl_demand + DOT_PRODUCT( demand_sw(k,:), nl_frac(:) )
+      n = n + 1
+    END DO
+
+    ! Calculate fraction of surface water demand to meet locally
+    IF ( n > 0 ) THEN
+      local_abs = ( n * l_avail - nl_avail + l_demand + nl_demand )            &
+                      / ( l_demand * (n + 1) )
+      ! Impose limits on local abstraction fraction
+      local_abs = MIN( MAX( local_abs, 0.0 ), 1.0 )
+
+      demand_nl(l,:) = demand_sw(l,:) * nl_frac(:) * local_abs
+    END IF
+
+  END IF
+
+END DO
+
+demand_sw(:,:) = demand_sw(:,:) - demand_nl(:,:)
+
+IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
+RETURN
+END SUBROUTINE nonlocal_abstraction_frac
 
 !#############################################################################
 !#############################################################################
