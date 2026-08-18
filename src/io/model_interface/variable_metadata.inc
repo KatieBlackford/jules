@@ -9367,4 +9367,17 @@ DATA metadata(723) / var_metadata(                                             &
 ! Units
     "kg m-2 s-1"                                                               &
   ) /
+!-----------------------------------------------------------------------------
+! Metadata for nonlocal_abstracted
+!-----------------------------------------------------------------------------
+DATA metadata(724) / var_metadata(                                             &
+! String identifier
+    'nonlocal_abstracted',                                                     &
+! Variable type
+    var_type_surface,                                                          &
+! Long name
+    "Water abstracted from non-local surface water",                           &
+! Units
+    "kg s-1"                                                                   &
+  ) /
 #endif

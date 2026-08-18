@@ -869,7 +869,8 @@ CASE ( jules )
            water_resources%demand_unmet, water_resources%gw_abstracted,        &
            water_resources%gw_avail, water_resources%gw_nr_abstracted,         &
            crop_vars%irrig_water_gb, water_resources%net_abstracted_river,     &
-           water_resources%sw_abstracted, water_resources%sw_avail_total,      &
+           water_resources%sw_abstracted,                                      &
+           water_resources%nonlocal_abstracted, water_resources%sw_avail_total,&
            water_resources%water_removed )
   END IF
 #endif

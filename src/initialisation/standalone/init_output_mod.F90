@@ -342,9 +342,10 @@ USE jules_vegetation_mod, ONLY: l_fapar_diag, l_fao_ref_evapotranspiration,    &
     photo_acclim_model, l_sugar, stomata_model, stomata_sox
 
 USE jules_water_resources_mod, ONLY: l_have_groundwater, l_have_renew_gwater,  &
-    l_have_surface_water, l_water_domestic, l_water_environment,               &
-    l_water_industry, l_water_irrigation, l_water_livestock,                   &
-    l_water_resources, l_water_transfers, no_model, nr_gwater_model
+    l_have_surface_water, l_nonlocal_abstraction, l_water_domestic,            &
+    l_water_environment, l_water_industry, l_water_irrigation,                 &
+    l_water_livestock, l_water_resources, l_water_transfers, no_model,         &
+    nr_gwater_model
 
 USE jules_rivers_mod, ONLY: l_rivers, l_riv_overbank, l_outflow_per_river,     &
     i_river_vn, rivers_camaflood, rivers_rfm, rivers_trip, l_inland_outflow
@@ -795,6 +796,14 @@ DO j = 1,nvars_in
     CASE (  'sw_abstracted', 'sw_avail' )
       remove_var = .TRUE.
       message    = 'No surface water is selected.'
+    END SELECT
+  END IF
+
+  IF ( .NOT. l_nonlocal_abstraction ) THEN
+    SELECT CASE ( var(j) )
+    CASE (  'nonlocal_abstracted' )
+      remove_var = .TRUE.
+      message    = 'l_nonlocal_abstraction not selected.'
     END SELECT
   END IF
 

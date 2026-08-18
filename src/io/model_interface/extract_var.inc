@@ -3430,6 +3430,12 @@ CASE ( 'sw_abstracted' )
                                / timestep )
   cube = map_from_land(cube_land)
 
+CASE ( 'nonlocal_abstracted' )
+  ! Sum over sources and convert kg to kg s-1.
+  cube_land = cube_from_array( SUM(water_resources%nonlocal_abstracted,2)      &
+                               / timestep )
+  cube = map_from_land(cube_land)
+
 CASE ( 'sw_avail' )
   cube_land = cube_from_array( water_resources%sw_avail_total )
   cube = map_from_land(cube_land)

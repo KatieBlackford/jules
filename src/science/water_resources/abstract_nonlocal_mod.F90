@@ -51,7 +51,8 @@ CONTAINS
 
 SUBROUTINE abstract_nonlocal( global_land_pts, priority_order,                &
                               nonlocal_network, demand_nl,                    &
-                              demand_unmet, sw_abstracted, sw_avail )
+                              demand_unmet, sw_abstracted,                    &
+                              nonlocal_abstracted, sw_avail)
 
 USE jules_water_resources_mod, ONLY:                                          &
   nwater_use, l_prioritise, n_sw_source, n_nonlocal_max 
@@ -95,6 +96,8 @@ REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                     &
     ! Unmet demands for water (kg).
   sw_abstracted(global_land_pts,n_sw_source),                                 &
     ! Net abstraction of water from surface water (kg).
+  nonlocal_abstracted(global_land_pts,n_sw_source),                           &
+    ! Net abstraction of water from non-local surface water (kg).
   sw_avail(global_land_pts,n_sw_source)
     ! Surface water that is available for abstraction (kg).
 
@@ -204,6 +207,7 @@ DO l = 1, global_land_pts
 END DO  !  global_land_pts loop
 
 sw_abstracted(:,:) = sw_abstracted(:,:) + sw_avail_start(:,:) - sw_avail(:,:)
+nonlocal_abstracted(:,:) = sw_avail_start(:,:) - sw_avail(:,:)
 
 RETURN
 END SUBROUTINE abstract_nonlocal

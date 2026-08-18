@@ -97,6 +97,8 @@ TYPE :: water_resources_data_type
       ! Water that has been abstracted from non-renewable groundwater (kg).
     sw_abstracted(:,:),                                                        &
       ! Water abstracted from surface water sources (kg).
+    nonlocal_abstracted(:,:),                                                  &
+      ! Water abstracted from non-local surface water sources (kg).      
     sw_avail_total(:),                                                         &
       ! Surface water that is available for abstraction at start of timestep,
       ! summed over sources (kg).
@@ -124,6 +126,7 @@ TYPE :: water_resources_type
   REAL(KIND=real_jlslsm), POINTER :: gw_avail(:)
   REAL(KIND=real_jlslsm), POINTER :: gw_nr_abstracted(:)
   REAL(KIND=real_jlslsm), POINTER :: sw_abstracted(:,:)
+  REAL(KIND=real_jlslsm), POINTER :: nonlocal_abstracted(:,:)
   REAL(KIND=real_jlslsm), POINTER :: sw_avail_total(:)
   REAL(KIND=real_jlslsm), POINTER :: water_removed(:)
 
@@ -284,6 +287,7 @@ ALLOCATE( water_resources_data%gw_avail(land_pts_gw) )
 ALLOCATE( water_resources_data%gw_nr_abstracted(land_pts_gw) )
 ! Surface water variables.
 ALLOCATE( water_resources_data%sw_abstracted(land_pts_sw,n_sw_source_dim) )
+ALLOCATE( water_resources_data%nonlocal_abstracted(land_pts_sw,n_sw_source_dim) )
 ALLOCATE( water_resources_data%sw_avail_total(land_pts_sw) )
 
 !-----------------------------------------------------------------------------
@@ -304,6 +308,7 @@ water_resources_data%gw_abstracted(:)         = 0.0
 water_resources_data%gw_avail(:)              = 0.0
 water_resources_data%gw_nr_abstracted(:)      = 0.0
 water_resources_data%sw_abstracted(:,:)       = 0.0
+water_resources_data%nonlocal_abstracted(:,:) = 0.0
 water_resources_data%sw_avail_total(:)        = 0.0
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
@@ -355,6 +360,7 @@ DEALLOCATE( water_resources_data%gw_abstracted )
 DEALLOCATE( water_resources_data%gw_avail )
 DEALLOCATE( water_resources_data%gw_nr_abstracted )
 DEALLOCATE( water_resources_data%sw_abstracted )
+DEALLOCATE( water_resources_data%nonlocal_abstracted )
 DEALLOCATE( water_resources_data%sw_avail_total )
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
@@ -421,6 +427,8 @@ water_resources%gw_abstracted    => water_resources_data%gw_abstracted
 water_resources%gw_avail         => water_resources_data%gw_avail
 water_resources%gw_nr_abstracted => water_resources_data%gw_nr_abstracted
 water_resources%sw_abstracted    => water_resources_data%sw_abstracted
+water_resources%nonlocal_abstracted                                            &
+                => water_resources_data%nonlocal_abstracted
 water_resources%sw_avail_total   => water_resources_data%sw_avail_total
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
@@ -469,6 +477,7 @@ NULLIFY( water_resources%gw_abstracted )
 NULLIFY( water_resources%gw_avail )
 NULLIFY( water_resources%gw_nr_abstracted )
 NULLIFY( water_resources%sw_abstracted )
+NULLIFY( water_resources%nonlocal_abstracted )
 NULLIFY( water_resources%sw_avail_total )
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)

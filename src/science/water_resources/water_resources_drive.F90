@@ -46,7 +46,8 @@ SUBROUTINE water_resources_drive( global_land_pts, priority_order,             &
                                   conv_loss_frac, demand_accum,                &
                                   demand_unmet, gw_abstracted, gw_avail,       &
                                   gw_nr_abstracted, sfc_water_frac,            &
-                                  sw_abstracted, sw_avail, water_removed,      &
+                                  sw_abstracted, nonlocal_abstracted,          &
+                                  sw_avail, water_removed,                     &
                                   conveyance_loss, return_flow_gw,             &
                                   return_flow_sw, supply_irrig )
 
@@ -110,6 +111,8 @@ REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
     ! This is INTENT(IN) in some configurations, INTENT(OUT) in others.
   sw_abstracted(global_land_pts,n_sw_source),                                  &
     ! Water abstracted from each surface water source (kg).
+  nonlocal_abstracted(global_land_pts,n_sw_source),                            &
+    ! Water abstracted from non local surface water (kg).
   sw_avail(global_land_pts,n_sw_source),                                       &
     ! Surface water that is available for abstraction (kg).
   water_removed(global_land_pts)
@@ -189,7 +192,8 @@ CALL split_demands( global_land_pts, demand_accum, sfc_water_frac, demand_sw,  &
 ! demand_sw in place, so that local abstraction below only sees the local
 ! share of the demand.
 !------------------------------------------------------------------------------
-demand_nl(:,:) = 0.0
+demand_nl(:,:)           = 0.0
+nonlocal_abstracted(:,:) = 0.0
 IF ( l_nonlocal_abstraction ) THEN
   CALL nonlocal_abstraction_frac( global_land_pts, nonlocal_network, sw_avail, &
                                   demand_sw, demand_nl )
@@ -214,7 +218,8 @@ IF ( l_nonlocal_abstraction ) THEN
   demand_unmet(:,:) = demand_unmet(:,:) + demand_nl(:,:)
 
   CALL abstract_nonlocal( global_land_pts, priority_order, nonlocal_network,   &
-                         demand_nl, demand_unmet, sw_abstracted, sw_avail )
+                         demand_nl, demand_unmet, sw_abstracted,               &
+                         nonlocal_abstracted, sw_avail )
 END IF
 
 !------------------------------------------------------------------------------

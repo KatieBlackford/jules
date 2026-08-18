@@ -82,6 +82,8 @@ REAL(KIND=real_jlslsm), ALLOCATABLE ::                                         &
     ! Water supplied for irrigation (kg).
   sw_abstracted_global(:,:),                                                   &
     ! Water that is abstracted from surface water sources (kg).
+  nonlocal_abstracted_global(:,:),                                             &
+    ! Water that is abstracted from nonlocal surface water sources (kg).
   sw_avail_global(:,:),                                                        &
     ! Surface water that is available for abstraction from each source (kg).
   sw_avail_total_start_global(:),                                              &
@@ -114,7 +116,7 @@ SUBROUTINE water_resources_control(                                            &
              tl_1_day_av_use_gb,  priority_order, demand_unmet, gw_abstracted, &
              gw_avail_start, gw_nr_abstracted,                                 &
              irrig_water_gb, net_abstracted_river, sw_abstracted,              &
-             sw_avail_total, water_removed )
+             nonlocal_abstracted, sw_avail_total, water_removed )
 
 !------------------------------------------------------------------------------
 ! Description:
@@ -300,6 +302,8 @@ REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
     ! Net abstraction from river (kg m-2).
   sw_abstracted(land_pts,n_sw_source),                                         &
     ! Water that is abstracted from surface waters (kg).
+  nonlocal_abstracted(land_pts,n_sw_source),                                   &
+    ! Water that is abstracted from nonlocal surface waters (kg).
   sw_avail_total(land_pts),                                                    &
     ! Surface water that is available for abstraction at start of timestep,    &
     ! summed over sources (kg).
@@ -501,7 +505,8 @@ IF ( l_water_res_call ) THEN
            conv_loss_frac_global, demand_accum_global,                         &
            demand_unmet_global, gw_abstracted_global, gw_avail_global,         &
            gw_nr_abstracted_global, sfc_water_frac_global,                     &
-           sw_abstracted_global, sw_avail_global, water_removed_global,        &
+           sw_abstracted_global, nonlocal_abstracted_global,                   &
+           sw_avail_global, water_removed_global,                              &
            conveyance_loss_global, return_flow_gw_global,                      &
            return_flow_sw_global, supply_irrig_global )
   END IF  !  is_master_task
@@ -513,7 +518,8 @@ IF ( l_water_res_call ) THEN
   !----------------------------------------------------------------------------
   CALL scatter_global_water( conveyance_loss, demand_unmet, gw_abstracted,     &
                              gw_nr_abstracted, return_flow_gw, return_flow_sw, &
-                             sfc_water_frac, supply_irrig, sw_abstracted,      &
+                             sfc_water_frac, supply_irrig,                     &
+                             sw_abstracted, nonlocal_abstracted,               &
                              sw_avail_total, water_removed )
 
   !----------------------------------------------------------------------------
@@ -1086,6 +1092,8 @@ IF ( l_allocate ) THEN
   error_sum = error_sum + ERROR
   ALLOCATE(sw_abstracted_global(land_size_sw,n_sw_source), STAT = ERROR)
   error_sum = error_sum + ERROR
+  ALLOCATE(nonlocal_abstracted_global(land_size_sw,n_sw_source), STAT = ERROR)
+  error_sum = error_sum + ERROR
   ALLOCATE(sw_avail_global(land_size_sw,n_sw_source), STAT = ERROR)
   error_sum = error_sum + ERROR
   ALLOCATE(sw_avail_total_start_global(land_size_sw), STAT = ERROR)
@@ -1108,6 +1116,7 @@ IF ( l_allocate ) THEN
     sfc_water_frac_global(:)   = 0.0
     supply_irrig_global(:)     = 0.0
     sw_abstracted_global(:,:)  = 0.0
+    nonlocal_abstracted_global(:,:)  = 0.0
     sw_avail_global(:,:)       = 0.0
     sw_avail_total_start_global(:) = 0.0
     water_removed_global(:)    = 0.0
@@ -1129,6 +1138,9 @@ ELSE
   END IF
   IF ( ALLOCATED(sw_avail_global) )       DEALLOCATE(sw_avail_global)
   IF ( ALLOCATED(sw_abstracted_global) )  DEALLOCATE(sw_abstracted_global)
+  IF ( ALLOCATED(nonlocal_abstracted_global) ) THEN
+    DEALLOCATE(nonlocal_abstracted_global)
+  END IF
   IF ( ALLOCATED(supply_irrig_global) )   DEALLOCATE(supply_irrig_global)
   IF ( ALLOCATED(sfc_water_frac_global) ) DEALLOCATE(sfc_water_frac_global)
   IF ( ALLOCATED(return_flow_gw_global) ) DEALLOCATE(return_flow_gw_global)
@@ -1235,7 +1247,8 @@ END SUBROUTINE gather_global_water
 SUBROUTINE scatter_global_water( conveyance_loss, demand_unmet, gw_abstracted, &
                                  gw_nr_abstracted, return_flow_gw,             &
                                  return_flow_sw, sfc_water_frac, supply_irrig, &
-                                 sw_abstracted, sw_avail_total, water_removed )
+                                 sw_abstracted, nonlocal_abstracted,           &
+                                 sw_avail_total, water_removed )
 
 !------------------------------------------------------------------------------
 ! Description:
@@ -1276,6 +1289,8 @@ REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
     ! Water supplied for irrigation (kg).
   sw_abstracted(land_pts,n_sw_source),                                         &
     ! Water abstracted from surface waters (kg).
+  nonlocal_abstracted(land_pts,n_sw_source),                                   &
+    ! Water abstracted from nonlocal surface waters (kg).
   sw_avail_total(land_pts),                                                    &
     ! Surface water that is available for abstraction at start of timestep,
     ! summed over sources (kg).
@@ -1318,6 +1333,8 @@ IF ( l_have_surface_water ) THEN
   CALL scatter_land_field( return_flow_sw_global, return_flow_sw )
   DO i = 1, n_sw_source
     CALL scatter_land_field( sw_abstracted_global(:,i), sw_abstracted(:,i) )
+    CALL scatter_land_field( nonlocal_abstracted_global(:,i),                 &
+                             nonlocal_abstracted(:,i) )
   END DO
   CALL scatter_land_field( sw_avail_total_start_global, sw_avail_total )
 END IF
