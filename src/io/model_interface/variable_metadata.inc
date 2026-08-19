@@ -9380,4 +9380,17 @@ DATA metadata(724) / var_metadata(                                             &
 ! Units
     "kg s-1"                                                                   &
   ) /
+!-----------------------------------------------------------------------------
+! Metadata for nonlocal_abstracted
+!-----------------------------------------------------------------------------
+DATA metadata(725) / var_metadata(                                             &
+! String identifier
+    'water_demand_nl',                                                               &
+! Variable type
+    var_type_surface,                                                          &
+! Long name
+    "Surface-water demand redirected to non-local sources",                    &
+! Units
+    "kg s-1"                                                                   &
+  ) /
 #endif

@@ -801,7 +801,7 @@ DO j = 1,nvars_in
 
   IF ( .NOT. l_nonlocal_abstraction ) THEN
     SELECT CASE ( var(j) )
-    CASE (  'nonlocal_abstracted' )
+    CASE (  'nonlocal_abstracted', 'water_demand_nl' )
       remove_var = .TRUE.
       message    = 'l_nonlocal_abstraction not selected.'
     END SELECT

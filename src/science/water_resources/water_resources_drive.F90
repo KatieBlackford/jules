@@ -44,7 +44,8 @@ CONTAINS
 SUBROUTINE water_resources_drive( global_land_pts, priority_order,             &
                                   nonlocal_network,                            &
                                   conv_loss_frac, demand_accum,                &
-                                  demand_unmet, gw_abstracted, gw_avail,       &
+                                  demand_unmet, demand_nl,                     &
+                                  gw_abstracted, gw_avail,                     &
                                   gw_nr_abstracted, sfc_water_frac,            &
                                   sw_abstracted, nonlocal_abstracted,          &
                                   sw_avail, water_removed,                     &
@@ -99,6 +100,9 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
 REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
   demand_unmet(global_land_pts,nwater_use),                                    &
     ! The part of the demand for water that is not satisfied (kg).
+  demand_nl(global_land_pts,nwater_use),                                       &
+    ! The part of the surface-water demand redirected to non-local sources 
+    !(kg).
   gw_abstracted(global_land_pts),                                              &
     ! Water abstracted from renewable groundwater (kg).
   gw_avail(global_land_pts),                                                   &
@@ -154,10 +158,9 @@ REAL(KIND=real_jlslsm) ::                                                      &
     ! Water that is lost during conveyance, for each water use (kg).
   demand_sw(global_land_pts,nwater_use),                                       &
     ! Demand for water from surface water, for each water use (kg).
-  demand_gw(global_land_pts,nwater_use),                                       &
+  demand_gw(global_land_pts,nwater_use)
     ! Demand for water from groundwater, for each water use (kg).
-  demand_nl(global_land_pts,nwater_use)
-    ! Demand for water to be met from non-local surface water (kg).
+
 
 ! Dr Hook variables
 INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0

@@ -65,6 +65,9 @@ REAL(KIND=real_jlslsm), ALLOCATABLE ::                                         &
     ! Demands for water accumulated over the water resource timestep (kg).
   demand_unmet_global(:,:),                                                    &
     ! The part of the demand for water that is not satisfied (kg).
+  demand_nl_global(:,:),                                                       &
+    ! The part of the surface water demand redirected to non-local surface
+    ! water sources (kg)
   gw_abstracted_global(:),                                                     &
     ! Water abstracted from renewable groundwater (kg).
   gw_avail_global(:),                                                          &
@@ -116,7 +119,7 @@ SUBROUTINE water_resources_control(                                            &
              tl_1_day_av_use_gb,  priority_order, demand_unmet, gw_abstracted, &
              gw_avail_start, gw_nr_abstracted,                                 &
              irrig_water_gb, net_abstracted_river, sw_abstracted,              &
-             nonlocal_abstracted, sw_avail_total, water_removed )
+             nonlocal_abstracted, demand_nl, sw_avail_total, water_removed )
 
 !------------------------------------------------------------------------------
 ! Description:
@@ -290,6 +293,9 @@ INTEGER, INTENT(OUT) ::                                                        &
 REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
   demand_unmet(land_pts,nwater_use),                                           &
     ! The part of the demand for water that is not satisfied (kg).
+  demand_nl(land_pts,nwater_use),                                              &
+    ! The part of the surface-water demand redirected to non-local surface
+    ! water sources (kg)
   gw_abstracted(land_pts),                                                     &
     ! Water abstracted from renewable groundwater (kg).
   gw_avail_start(land_pts),                                                    &
@@ -501,9 +507,9 @@ IF ( l_water_res_call ) THEN
   !----------------------------------------------------------------------------
   IF ( is_master_task() ) THEN
     CALL water_resources_drive( global_land_pts, priority_order_global,        &
-           nonlocal_network_global,                                            &
-           conv_loss_frac_global, demand_accum_global,                         &
-           demand_unmet_global, gw_abstracted_global, gw_avail_global,         &
+           nonlocal_network_global, conv_loss_frac_global,                     &
+           demand_accum_global, demand_unmet_global, demand_nl_global,         &
+           gw_abstracted_global, gw_avail_global,                              &
            gw_nr_abstracted_global, sfc_water_frac_global,                     &
            sw_abstracted_global, nonlocal_abstracted_global,                   &
            sw_avail_global, water_removed_global,                              &
@@ -516,8 +522,9 @@ IF ( l_water_res_call ) THEN
   ! each task can update groundwater stores. Diagnostics are also scattered.
   ! There are no prognostic variables to be scattered.
   !----------------------------------------------------------------------------
-  CALL scatter_global_water( conveyance_loss, demand_unmet, gw_abstracted,     &
-                             gw_nr_abstracted, return_flow_gw, return_flow_sw, &
+  CALL scatter_global_water( conveyance_loss, demand_unmet, demand_nl,         &
+                             gw_abstracted, gw_nr_abstracted,                  &
+                             return_flow_gw, return_flow_sw,                   &
                              sfc_water_frac, supply_irrig,                     &
                              sw_abstracted, nonlocal_abstracted,               &
                              sw_avail_total, water_removed )
@@ -1060,6 +1067,8 @@ IF ( l_allocate ) THEN
   error_sum = error_sum + ERROR
   ALLOCATE(demand_unmet_global(land_size,nwater_use), STAT = ERROR)
   error_sum = error_sum + ERROR
+  ALLOCATE(demand_nl_global(land_size,nwater_use), STAT = ERROR)
+  error_sum = error_sum + ERROR
   ALLOCATE(gw_abstracted_global(land_size_gw), STAT = ERROR)
   error_sum = error_sum + ERROR
   ALLOCATE(gw_avail_global(land_size_gw), STAT = ERROR)
@@ -1107,6 +1116,7 @@ IF ( l_allocate ) THEN
     conv_loss_frac_global(:)   = 0.0
     demand_accum_global(:,:)   = 0.0
     demand_unmet_global(:,:)   = 0.0
+    demand_nl_global(:,:)      = 0.0
     gw_abstracted_global(:)    = 0.0
     gw_avail_global(:)         = 0.0
     gw_nr_abstracted_global(:) = 0.0
@@ -1150,6 +1160,7 @@ ELSE
   IF ( ALLOCATED(gw_avail_global) )       DEALLOCATE(gw_avail_global)
   IF ( ALLOCATED(gw_abstracted_global) )  DEALLOCATE(gw_abstracted_global)
   IF ( ALLOCATED(demand_unmet_global) )   DEALLOCATE(demand_unmet_global)
+  IF ( ALLOCATED(demand_nl_global) )      DEALLOCATE(demand_nl_global)
   IF ( ALLOCATED(demand_accum_global) )   DEALLOCATE(demand_accum_global)
   IF ( ALLOCATED(conv_loss_frac_global) ) DEALLOCATE(conv_loss_frac_global)
   IF ( ALLOCATED(conveyance_loss_global) ) DEALLOCATE(conveyance_loss_global)
@@ -1244,9 +1255,10 @@ END SUBROUTINE gather_global_water
 !##############################################################################
 !##############################################################################
 
-SUBROUTINE scatter_global_water( conveyance_loss, demand_unmet, gw_abstracted, &
-                                 gw_nr_abstracted, return_flow_gw,             &
-                                 return_flow_sw, sfc_water_frac, supply_irrig, &
+SUBROUTINE scatter_global_water( conveyance_loss, demand_unmet, demand_nl,     &
+                                 gw_abstracted, gw_nr_abstracted,              &
+                                 return_flow_gw, return_flow_sw,               &
+                                 sfc_water_frac, supply_irrig,                 &
                                  sw_abstracted, nonlocal_abstracted,           &
                                  sw_avail_total, water_removed )
 
@@ -1258,7 +1270,7 @@ SUBROUTINE scatter_global_water( conveyance_loss, demand_unmet, gw_abstracted, &
 USE ancil_info, ONLY: land_pts  ! for the current task
 
 USE jules_water_resources_mod, ONLY: l_have_groundwater, l_have_surface_water, &
-      l_water_irrigation, n_sw_source, nwater_use,                             &
+      l_nonlocal_abstraction, l_water_irrigation, n_sw_source, nwater_use,     &
       partition_calc_from_stores, partition_method
 
 USE model_grid_mod, ONLY: global_land_pts
@@ -1275,6 +1287,9 @@ REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
     ! Water that is lost during conveyance (kg).
   demand_unmet(land_pts,nwater_use),                                           &
     ! The part of the demand for water that is not satisfied (kg).
+  demand_nl(land_pts,nwater_use),                                              &
+    ! The part of the surface-water demand redirected to non-local surface
+    ! water sources (kg).
   gw_abstracted(land_pts),                                                     &
     ! Water abstracted from renewable groundwater (kg).
   gw_nr_abstracted(land_pts),                                                  &
@@ -1312,6 +1327,13 @@ CALL scatter_land_field( water_removed_global, water_removed )
 DO i = 1, nwater_use
   CALL scatter_land_field( demand_unmet_global(:,i), demand_unmet(:,i) )
 END DO
+
+! Only meaningful if non-local abstractions are active.
+IF ( l_nonlocal_abstraction ) THEN
+  DO i = 1, nwater_use
+    CALL scatter_land_field( demand_nl_global(:,i), demand_nl(:,i) )
+  END DO
+END IF
 
 ! Fields that are only required if we are modelling groundwater.
 IF ( l_have_groundwater ) THEN

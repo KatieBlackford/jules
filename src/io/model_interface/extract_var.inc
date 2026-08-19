@@ -3492,6 +3492,12 @@ CASE ( 'water_demand_unmet' )
                                / timestep )
   cube = map_from_land(cube_land)
 
+CASE ( 'water_demand_nl' )
+  ! Sum over sectors and convert kg to kg s-1.
+  cube_land = cube_from_array( SUM(water_resources%demand_nl,2)             &
+                               / timestep )
+  cube = map_from_land(cube_land)
+
 CASE ( 'water_removed' )
   ! Convert kg to kg s-1.
   cube_land = cube_from_array( water_resources%water_removed / timestep )

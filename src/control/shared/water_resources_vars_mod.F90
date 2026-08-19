@@ -88,6 +88,9 @@ TYPE :: water_resources_data_type
       ! but this is not done yet.
     demand_unmet(:,:),                                                         &
       ! The part of the demand for water that is not satisfied (kg).
+    demand_nl(:,:),                                                            &
+      ! The part of the demand for surface water that is redirected to 
+      ! non-local sources (kg)
     gw_abstracted(:),                                                          &
       ! Water abstracted from renewable groundwater (kg).
     gw_avail(:),                                                               &
@@ -122,6 +125,7 @@ TYPE :: water_resources_type
   REAL(KIND=real_jlslsm), POINTER :: net_abstracted_river(:)
   REAL(KIND=real_jlslsm), POINTER :: demand_accum(:,:)
   REAL(KIND=real_jlslsm), POINTER :: demand_unmet(:,:)
+  REAL(KIND=real_jlslsm), POINTER :: demand_nl(:,:)
   REAL(KIND=real_jlslsm), POINTER :: gw_abstracted(:)
   REAL(KIND=real_jlslsm), POINTER :: gw_avail(:)
   REAL(KIND=real_jlslsm), POINTER :: gw_nr_abstracted(:)
@@ -280,6 +284,7 @@ ALLOCATE( water_resources_data%net_abstracted_river(land_pts_sw) )
 !-----------------------------------------------------------------------------
 ALLOCATE( water_resources_data%demand_accum(land_pts_dim,nwater_use_dim) )
 ALLOCATE( water_resources_data%demand_unmet(land_pts_dim,nwater_use_dim) )
+ALLOCATE( water_resources_data%demand_nl(land_pts_dim,nwater_use_dim) )
 ALLOCATE( water_resources_data%water_removed(land_pts_dim) )
 ! Groundwater variables.
 ALLOCATE( water_resources_data%gw_abstracted(land_pts_gw) )
@@ -303,6 +308,7 @@ water_resources_data%demand_rate_transfers(:) = 0.0
 water_resources_data%net_abstracted_river(:)  = 0.0
 water_resources_data%demand_accum(:,:)        = 0.0
 water_resources_data%demand_unmet(:,:)        = 0.0
+water_resources_data%demand_nl(:,:)           = 0.0
 water_resources_data%water_removed(:)         = 0.0
 water_resources_data%gw_abstracted(:)         = 0.0
 water_resources_data%gw_avail(:)              = 0.0
@@ -355,6 +361,7 @@ DEALLOCATE( water_resources_data%demand_rate_transfers )
 DEALLOCATE( water_resources_data%net_abstracted_river )
 DEALLOCATE( water_resources_data%demand_accum )
 DEALLOCATE( water_resources_data%demand_unmet )
+DEALLOCATE( water_resources_data%demand_nl )
 DEALLOCATE( water_resources_data%water_removed )
 DEALLOCATE( water_resources_data%gw_abstracted )
 DEALLOCATE( water_resources_data%gw_avail )
@@ -422,6 +429,7 @@ water_resources%net_abstracted_river                                           &
                 => water_resources_data%net_abstracted_river
 water_resources%demand_accum     => water_resources_data%demand_accum
 water_resources%demand_unmet     => water_resources_data%demand_unmet
+water_resources%demand_nl     => water_resources_data%demand_nl
 water_resources%water_removed    => water_resources_data%water_removed
 water_resources%gw_abstracted    => water_resources_data%gw_abstracted
 water_resources%gw_avail         => water_resources_data%gw_avail
@@ -472,6 +480,7 @@ NULLIFY( water_resources%demand_rate_transfers )
 NULLIFY( water_resources%net_abstracted_river )
 NULLIFY( water_resources%demand_accum )
 NULLIFY( water_resources%demand_unmet )
+NULLIFY( water_resources%demand_nl )
 NULLIFY( water_resources%water_removed )
 NULLIFY( water_resources%gw_abstracted )
 NULLIFY( water_resources%gw_avail )
