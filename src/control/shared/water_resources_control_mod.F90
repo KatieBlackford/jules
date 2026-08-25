@@ -522,12 +522,12 @@ IF ( l_water_res_call ) THEN
   ! each task can update groundwater stores. Diagnostics are also scattered.
   ! There are no prognostic variables to be scattered.
   !----------------------------------------------------------------------------
-  CALL scatter_global_water( conveyance_loss, demand_unmet, demand_nl,         &
+  CALL scatter_global_water( conveyance_loss, demand_unmet,                    &
                              gw_abstracted, gw_nr_abstracted,                  &
                              return_flow_gw, return_flow_sw,                   &
                              sfc_water_frac, supply_irrig,                     &
                              sw_abstracted, nonlocal_abstracted,               &
-                             sw_avail_total, water_removed )
+                             demand_nl, sw_avail_total, water_removed )
 
   !----------------------------------------------------------------------------
   ! Deallocate global arrays.
@@ -693,6 +693,8 @@ USE parallel_mod, ONLY: gather_land_field, is_master_task
 
 USE theta_field_sizes, ONLY: row_length=>t_i_length, rows=>t_j_length
 
+USE ereport_mod, ONLY: ereport
+
 IMPLICIT NONE
 
 !------------------------------------------------------------------------------
@@ -810,6 +812,30 @@ IF ( is_master_task() ) THEN
     END DO
   END DO
 
+  !------------------------------------------------------------------------------
+  ! Write the non-local network to a simple diagnostic file, for
+  ! inspection. Made once and a text file
+  !------------------------------------------------------------------------------
+  BLOCK
+    INTEGER :: unit, l, ios
+    CHARACTER(LEN=*), PARAMETER :: out_file = 'nonlocal_network_diag.txt'
+  
+    OPEN(NEWUNIT=unit, FILE=out_file, STATUS='replace', ACTION='write',          &
+         IOSTAT=ios)
+    IF ( ios /= 0 ) THEN
+      CALL ereport( 'initialise_nonlocal_abstraction', ios,                        &
+                    'Could not open nonlocal_network diagnostic file.' )
+    END IF
+
+    WRITE(unit,'(A)') '# land_point  latitude  longitude  elevation  donors(1:n_nonlocal_max)'
+    DO l = 1, global_land_pts
+      WRITE(unit,'(I8,3(1X,F10.4),20(1X,I8))') l, lat_global(l), lon_global(l),  &
+            elev_global(l), nonlocal_network(l,:)
+    END DO
+
+    CLOSE(unit)
+  END BLOCK
+  
 END IF
 
 DEALLOCATE( elev_global )
@@ -1255,12 +1281,12 @@ END SUBROUTINE gather_global_water
 !##############################################################################
 !##############################################################################
 
-SUBROUTINE scatter_global_water( conveyance_loss, demand_unmet, demand_nl,     &
+SUBROUTINE scatter_global_water( conveyance_loss, demand_unmet,                &
                                  gw_abstracted, gw_nr_abstracted,              &
                                  return_flow_gw, return_flow_sw,               &
                                  sfc_water_frac, supply_irrig,                 &
                                  sw_abstracted, nonlocal_abstracted,           &
-                                 sw_avail_total, water_removed )
+                                 demand_nl, sw_avail_total, water_removed )
 
 !------------------------------------------------------------------------------
 ! Description:

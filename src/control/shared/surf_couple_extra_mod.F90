@@ -866,13 +866,12 @@ CASE ( jules )
            crop_vars%sthu_irr_soilt, psparms%sthu_soilt,                       &
            sthzw_soilt, fluxes%sub_surf_roff_gb, crop_vars%tl_1_day_av_gb,     &
            crop_vars%tl_1_day_av_use_gb, water_resources%priority_order,       &
-           water_resources%demand_unmet, water_resources%demand_nl,            &
-           water_resources%gw_abstracted,                                      &
+           water_resources%demand_unmet, water_resources%gw_abstracted,        &
            water_resources%gw_avail, water_resources%gw_nr_abstracted,         &
            crop_vars%irrig_water_gb, water_resources%net_abstracted_river,     &
            water_resources%sw_abstracted,                                      &
-           water_resources%nonlocal_abstracted, water_resources%sw_avail_total,&
-           water_resources%water_removed )
+           water_resources%nonlocal_abstracted, water_resources%demand_nl,     &
+           water_resources%sw_avail_total, water_resources%water_removed )
   END IF
 #endif
 
