@@ -134,17 +134,21 @@ REAL(KIND=real_jlslsm) ::                                                     &
 !------------------------------------------------------------------------------
 !end of header
 
+! Save the initial amounts of available water.
 sw_avail_start(:,:) = sw_avail(:,:)
 
 DO l = 1, global_land_pts
 
   demand(:) = demand_nl(l,:)
-
+  
+  ! Loop through nonlocal network.
   DO p = 1, n_nonlocal_max
     i = nonlocal_network(l,p)
     IF ( i == imdi ) CYCLE
 
+    ! Calculate the total demand for abstraction from surface water.
     tot_sw_demand = SUM( demand(:) )
+    ! Calculate the total available surface water.
     tot_sw_avail  = SUM( sw_avail(i,:) )
 
     ! If there is negligible demand or negligible available water, move to
@@ -153,17 +157,22 @@ DO l = 1, global_land_pts
     IF ( tot_sw_demand > water_min .AND. tot_sw_avail > water_min ) THEN
 
       IF ( l_prioritise ) THEN
-
+        ! Demands are prioritised.
         DO j = 1, nwater_use
           k = priority_order(l,j)
 
+          ! Loop over sources
           IF ( demand(k) < water_min ) CYCLE
 
           DO s = 1, n_sw_source
             IF ( demand(k) < sw_avail(i,s) ) THEN
+              ! Demand from this sector can be met in full from this 
+              ! source.
               sw_abs    = demand(k)
               demand(k) = 0.0
             ELSE
+              ! Demand from this sector cannot be met in full from this 
+              ! source.
               sw_abs    = sw_avail(i,s)
               demand(k) = demand(k) - sw_abs
             END IF
@@ -175,15 +184,21 @@ DO l = 1, global_land_pts
 
       ELSE
 
+        ! Demands are not prioritised.
         IF ( tot_sw_demand <= tot_sw_avail ) THEN
+          ! There is enough surface water for all demands.
           demand_unmet(l,:) = demand_unmet(l,:) - demand(:)
           demand(:)         = 0.0
 
           DO s = 1, n_sw_source
             IF ( tot_sw_demand < sw_avail(i,s) ) THEN
+              ! The total demand can be met from this source.
               sw_abs        = tot_sw_demand
               tot_sw_demand = 0.0
             ELSE
+              ! The total demand cannot be met from this source. 
+              ! Abstract the remaining available water. We will meet the
+              ! rest of the demand from other sources.
               sw_abs        = sw_avail(i,s)
               tot_sw_demand = tot_sw_demand - sw_abs
             END IF
@@ -191,9 +206,12 @@ DO l = 1, global_land_pts
           END DO  !  sources
 
         ELSE
+          ! There is insufficient water to meet all demands.
+          ! Meet a fraction of each demand
           demand_unmet(l,:) = demand_unmet(l,:) - demand(:) *                 &
                               tot_sw_avail / tot_sw_demand
           demand(:)  = demand(:) * (1.0 - tot_sw_avail / tot_sw_demand)
+          ! All sources of water have been exhausted
           sw_avail(i,:) = 0.0
 
         END IF  !  tot_sw_demand v. tot_sw_avail
@@ -206,6 +224,7 @@ DO l = 1, global_land_pts
 
 END DO  !  global_land_pts loop
 
+! Calculate the abstraction from each surface water source
 sw_abstracted(:,:) = sw_abstracted(:,:) + sw_avail_start(:,:) - sw_avail(:,:)
 nonlocal_abstracted(:,:) = sw_avail_start(:,:) - sw_avail(:,:)
 
