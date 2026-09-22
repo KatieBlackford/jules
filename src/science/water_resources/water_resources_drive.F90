@@ -397,7 +397,7 @@ DO l = 1, global_land_pts
       ! Impose limits on local abstraction fraction
       local_abs = MIN( MAX( local_abs, 0.0 ), 1.0 )
 
-      demand_nl(l,:) = demand_sw(l,:) * nl_frac(:) * local_abs
+      demand_nl(l,:) = demand_sw(l,:) * nl_frac(:) * (1 - local_abs)
     END IF
 
   END IF
