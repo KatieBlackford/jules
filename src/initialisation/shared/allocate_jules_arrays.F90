@@ -148,7 +148,11 @@ USE UM_ParParams,    ONLY: halo_type_no_halo
 USE Field_Types,     ONLY: fld_type_r
 #endif
 
-USE parallel_mod, ONLY: is_master_task
+#if defined(UM_JULES)
+USE um_parallel_mod, ONLY: is_master_task
+#else
+USE parallel_mod,    ONLY: is_master_task
+#endif
 
 USE parkind1,                 ONLY: jprb, jpim
 USE yomhook,                  ONLY: lhook, dr_hook
