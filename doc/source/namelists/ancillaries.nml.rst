@@ -1093,7 +1093,7 @@ This namelist specifies the options available for initialising irrigated fractio
 
 .. nml:namelist:: JULES_RIVERS_PROPS
 
-This namelist specifies how spatially varying river routing properties (including overbank inundation and minor reservirs) should be set.
+This namelist specifies how spatially varying river routing properties (including overbank inundation and minor reservoirs) should be set.
 
 .. note:: ``read_from_dump`` is not currently implemented for this namelist, meaning that river ancillary variables cannot be read from a dump file. Initial values of river prognostic variables can however be read from a dump file (see :nml:lst:`JULES_INITIAL`).
 
