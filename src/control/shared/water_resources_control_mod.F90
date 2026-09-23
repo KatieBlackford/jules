@@ -812,30 +812,6 @@ IF ( is_master_task() ) THEN
     END DO
   END DO
 
-  !------------------------------------------------------------------------------
-  ! Write the non-local network to a simple diagnostic file, for
-  ! inspection. Made once and a text file
-  !------------------------------------------------------------------------------
-  BLOCK
-    INTEGER :: unit, l, ios
-    CHARACTER(LEN=*), PARAMETER :: out_file = 'nonlocal_network_diag.txt'
-  
-    OPEN(NEWUNIT=unit, FILE=out_file, STATUS='replace', ACTION='write',          &
-         IOSTAT=ios)
-    IF ( ios /= 0 ) THEN
-      CALL ereport( 'initialise_nonlocal_abstraction', ios,                        &
-                    'Could not open nonlocal_network diagnostic file.' )
-    END IF
-
-    WRITE(unit,'(A)') '# land_point  latitude  longitude  elevation  donors(1:n_nonlocal_max)'
-    DO l = 1, global_land_pts
-      WRITE(unit,'(I8,3(1X,F10.4),20(1X,I8))') l, lat_global(l), lon_global(l),  &
-            elev_global(l), nonlocal_network(l,:)
-    END DO
-
-    CLOSE(unit)
-  END BLOCK
-  
 END IF
 
 DEALLOCATE( elev_global )
