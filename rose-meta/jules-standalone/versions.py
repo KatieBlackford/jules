@@ -132,7 +132,7 @@ class vn82_t32(MacroUpgrade):
 
     """Upgrade macro from JULES by Douglas Clark"""
 
-    BEFORE_TAG = "vn8.2"
+    BEFORE_TAG = "vn8.2_t140"
     AFTER_TAG = "vn8.2_t32"
 
     def upgrade(self,config, meta_config=None):
