@@ -121,7 +121,7 @@ END IF
 !------------------------------------------------------------------------------
 ! Remove net abstraction from rivers from surface runoff - in effect the
 ! surface runoff variable becomes a more generic source/sink term for rivers.
-! The resulting term can be negative but in general the water resource code 
+! The resulting term can be negative but in general the water resource code
 ! will not look to abstract more water than is available, leaving this term
 ! positive
 !------------------------------------------------------------------------------
