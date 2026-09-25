@@ -121,7 +121,9 @@ END IF
 !------------------------------------------------------------------------------
 ! Remove net abstraction from rivers from surface runoff - in effect the
 ! surface runoff variable becomes a more generic source/sink term for rivers.
-! The resulting term can be negative.
+! The resulting term can be negative but in general the water resource code 
+! will not look to abstract more water than is available, leaving this term
+! positive
 !------------------------------------------------------------------------------
 IF ( l_water_resources .AND. sw_river_source > 0 ) THEN
   ! Calculate reciprocal of timestep length.
