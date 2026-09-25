@@ -1413,7 +1413,7 @@ These variables are only available if :nml:mem:`JULES_WATER_RESOURCES::l_water_r
 | ``conv_loss_frac``        | Fraction of abstracted water that is lost during conveyance from source to     |            |
 |                           | user (an input to the model).                                                  |            |
 +---------------------------+--------------------------------------------------------------------------------+------------+
-| ``conveyance_loss``       | Water that is lost during conveyance (kg s\ :sup:`-1`).                        |            |
+| ``conveyance_loss``       | Water that is lost during conveyance from source to user (kg s\ :sup:`-1`).    |            |
 +---------------------------+--------------------------------------------------------------------------------+------------+
 | ``sfc_water_frac``        | Target for the fraction of demand to be met from surface water.                |            |
 +---------------------------+--------------------------------------------------------------------------------+------------+

@@ -112,7 +112,7 @@ TYPE :: water_resources_data_type
     abstracted_river(:),                                                       &
       ! Water abstracted from rivers (kg).
     conveyance_loss(:),                                                        &
-      ! Water that is lost during conveyance (kg).
+      ! Water that is lost during conveyance from source to user (kg).
     water_removed(:)
       ! Water that is removed from the system during use, e.g. incorporated
       ! into manufactured goods (kg).

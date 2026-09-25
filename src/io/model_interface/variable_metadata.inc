@@ -9376,7 +9376,7 @@ DATA metadata(724) / var_metadata(                                             &
 ! Variable type
     var_type_surface,                                                          &
 ! Long name
-    "Water that is lost during conveyance",                                    &
+    "Water that is lost during conveyance from source to user",                &
 ! Units
     "kg s-1"                                                                   &
   ) /

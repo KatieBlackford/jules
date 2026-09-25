@@ -56,7 +56,7 @@ INTEGER, ALLOCATABLE ::                                                        &
 
 REAL(KIND=real_jlslsm), ALLOCATABLE ::                                         &
   conveyance_loss_global(:),                                                   &
-    ! Water that is lost during conveyance (kg).
+    ! Water that is lost during conveyance from source to user (kg).
   conv_loss_frac_global(:),                                                    &
     ! Fraction of water that is lost during conveyance from source to user.
   demand_accum_global(:,:),                                                    &
@@ -330,7 +330,7 @@ REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
   abstracted_river(land_pts),                                                  &
     ! Water abstracted from rivers (kg). Diagnostic only.
   conveyance_loss(land_pts),                                                   &
-    ! Water that is lost during conveyance (kg).
+    ! Water that is lost during conveyance from source to user (kg).
   demand_unmet(land_pts,nwater_use),                                           &
     ! The part of the demand for water that is not satisfied (kg).
   gw_avail_start(land_pts),                                                    &
@@ -1222,7 +1222,7 @@ IMPLICIT NONE
 !------------------------------------------------------------------------------
 REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
   conveyance_loss(land_pts),                                                   &
-    ! Water that is lost during conveyance (kg).
+    ! Water that is lost during conveyance from source to user (kg).
   demand_unmet(land_pts,nwater_use),                                           &
     ! The part of the demand for water that is not satisfied (kg).
   gw_abstracted(land_pts),                                                     &
