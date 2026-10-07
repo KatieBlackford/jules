@@ -10,3 +10,4 @@
 | maggiehendry    | Maggie Hendry    | Met Office  | 2026-08-21 |
 | DanCopsey       | Dan Copsey       | Met Office  | 2026-08-24 |
 | Pierre-siddall  | Pierre Siddall   | Met Office  | 2026-08-26 |
+| doucla          | Douglas Clark    | UKCEH       | 2026-10-07 |
