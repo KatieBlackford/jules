@@ -77,7 +77,7 @@ TYPE :: water_resources_data_type
     abstracted_minor_res_global(:),                                            &
       ! Water abstracted from minor reservoirs, on global land points (kg).
     net_abstracted_river_global(:),                                            &
-      ! Net abstraction from river, on global land points (kg m-2).
+      ! Net abstraction from river, on global land points (kg).
     !--------------------------------------------------------------------------
     ! Internal/work variables (some of which are also used as diagnostics).
     ! All abstractions are gross fluxes (not net of returns) unless stated

@@ -47,7 +47,7 @@ USE jules_rivers_mod, ONLY:                                                    &
      rivers_camaflood, rivers_rfm, rivers_trip, rivers_type
 
 USE jules_water_resources_mod, ONLY:                                           &
-     l_water_resources, sw_river_source
+     l_water_resources
 
 USE rivers_route_camaflood_mod, ONLY:                                          &
 !  imported procedures
@@ -64,9 +64,6 @@ USE rivers_route_trip_mod, ONLY:                                               &
 USE route_minor_reservoirs_mod, ONLY:                                          &
      route_minor_reservoirs
 
-USE timestep_mod, ONLY:                                                        &
-    timestep
-
 USE jules_print_mgr, ONLY:                                                     &
   jules_message,                                                               &
   jules_print
@@ -81,8 +78,7 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
     ! Water abstracted from minor reservoirs over river timestep, on river
     ! points (kg).
   net_abstracted_river_rp(np_rivers)
-    ! Water abstracted from rivers over river timestep, on river points
-    ! (kg m-2).
+    ! Water abstracted from rivers over river timestep, on river points (kg).
 
 !------------------------------------------------------------------------------
 ! Arguments with INTENT(IN OUT)
@@ -93,9 +89,6 @@ TYPE(rivers_type), INTENT(IN OUT) :: rivers
 ! Local scalar variables
 !------------------------------------------------------------------------------
 INTEGER :: ip                !  loop counter
-
-REAL(KIND=real_jlslsm) :: recip_timestep
-  ! Reciprocal of river timestep length (s-1).
 
 !------------------------------------------------------------------------------
 ! Local array variables
@@ -116,23 +109,6 @@ IF ( l_minor_reservoirs ) THEN
                                rivers%rivers_boxareas_rp,                      &
                                rivers%minor_res_storage,                       &
                                rivers%rrun_surf_rp )
-END IF
-
-!------------------------------------------------------------------------------
-! Remove net abstraction from rivers from surface runoff - in effect the
-! surface runoff variable becomes a more generic source/sink term for rivers.
-! The resulting term can be negative but in general the water resource code
-! will not look to abstract more water than is available, leaving this term
-! positive
-!------------------------------------------------------------------------------
-IF ( l_water_resources .AND. sw_river_source > 0 ) THEN
-  ! Calculate reciprocal of timestep length.
-  recip_timestep = 1.0 / ( REAL(nstep_rivers) * timestep )
-  DO ip = 1, np_rivers
-    rivers%rrun_surf_rp(ip) = rivers%rrun_surf_rp(ip)                          &
-      ! Convert abstraction from kg m-2 to kg m-2 s-1.
-      - net_abstracted_river_rp(ip) * recip_timestep
-  END DO
 END IF
 
 !------------------------------------------------------------------------------
@@ -157,12 +133,14 @@ CASE ( rivers_camaflood )
                                rivers%rivers_outflow_rp )
 
 CASE ( rivers_rfm )
-  CALL rivers_route_rfm( rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,         &
+  CALL rivers_route_rfm( net_abstracted_river_rp, rivers%rrun_surf_rp,         &
+                         rivers%rrun_sub_surf_rp,                              &
                          rivers%rflow_rp, baseflow,                            &
                         !  imported river arrays
                          rivers)
 CASE ( rivers_trip )
-  CALL rivers_route_trip( rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,        &
+  CALL rivers_route_trip( net_abstracted_river_rp, rivers%rrun_surf_rp,        &
+                          rivers%rrun_sub_surf_rp,                             &
                           rivers%rflow_rp, baseflow, rivers%rivers_outflow_rp, &
                           rivers%rivers_next_rp, rivers%rivers_seq_rp,         &
                           rivers%rivers_sto_rp,rivers%rivers_boxareas_rp,      &
