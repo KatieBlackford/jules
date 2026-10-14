@@ -28,8 +28,8 @@ CONTAINS
 
 !##############################################################################
 
-SUBROUTINE rivers_route_rp( abstracted_minor_res_rp, net_abstracted_river_rp,  &
-                            rivers )
+SUBROUTINE rivers_route_rp( sw_river_source, abstracted_minor_res_rp,          &
+                            net_abstracted_river_rp, rivers )
 
 !------------------------------------------------------------------------------
 !
@@ -45,9 +45,6 @@ USE jules_rivers_mod, ONLY:                                                    &
 !  imported scalars with intent(in)
      i_river_vn, l_minor_reservoirs, np_rivers, nstep_rivers,                  &
      rivers_camaflood, rivers_rfm, rivers_trip, rivers_type
-
-USE jules_water_resources_mod, ONLY:                                           &
-     l_water_resources
 
 USE rivers_route_camaflood_mod, ONLY:                                          &
 !  imported procedures
@@ -73,6 +70,11 @@ IMPLICIT NONE
 !------------------------------------------------------------------------------
 ! Arguments with INTENT(IN)
 !------------------------------------------------------------------------------
+INTEGER, INTENT(IN) ::                                                         &
+  sw_river_source
+    ! A value > 0 indicates that rivers are used as a source of water for
+    ! abstraction.
+
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   abstracted_minor_res_rp(np_rivers),                                          &
     ! Water abstracted from minor reservoirs over river timestep, on river
@@ -133,14 +135,14 @@ CASE ( rivers_camaflood )
                                rivers%rivers_outflow_rp )
 
 CASE ( rivers_rfm )
-  CALL rivers_route_rfm( net_abstracted_river_rp, rivers%rrun_surf_rp,         &
-                         rivers%rrun_sub_surf_rp,                              &
+  CALL rivers_route_rfm( sw_river_source, net_abstracted_river_rp,             &
+                         rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,         &
                          rivers%rflow_rp, baseflow,                            &
                         !  imported river arrays
                          rivers)
 CASE ( rivers_trip )
-  CALL rivers_route_trip( net_abstracted_river_rp, rivers%rrun_surf_rp,        &
-                          rivers%rrun_sub_surf_rp,                             &
+  CALL rivers_route_trip( sw_river_source, net_abstracted_river_rp,            &
+                          rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,        &
                           rivers%rflow_rp, baseflow, rivers%rivers_outflow_rp, &
                           rivers%rivers_next_rp, rivers%rivers_seq_rp,         &
                           rivers%rivers_sto_rp,rivers%rivers_boxareas_rp,      &

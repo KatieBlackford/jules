@@ -64,8 +64,8 @@ CONTAINS
 !   For consistency with other routines (for now), the output is converted
 !   again to a flux density kg/m2/s
 
-SUBROUTINE rivers_route_rfm( net_abstracted_river_rp, sfc_runoff,              &
-                             sub_sfc_runoff, outflow, baseflow,                &
+SUBROUTINE rivers_route_rfm( sw_river_source, net_abstracted_river_rp,         &
+                             sfc_runoff, sub_sfc_runoff, outflow, baseflow,    &
                              rivers )
 
 USE jules_rivers_mod, ONLY:                                                    &
@@ -75,8 +75,6 @@ USE jules_rivers_mod, ONLY:                                                    &
        ,cbriver, retl, retr, rfm_land, rfm_river, rfm_sea,                     &
 ! imported type
         rivers_type
-
-USE jules_water_resources_mod, ONLY: sw_river_source
 
 USE timestep_mod, ONLY: timestep
 
@@ -93,6 +91,11 @@ USE um_types, ONLY: real_jlslsm
 IMPLICIT NONE
 
 ! IN Arguments
+
+! Scalar arguments with intent(in)
+INTEGER, INTENT(IN) :: sw_river_source
+       ! A value > 0 indicates that rivers are used as a source of water for
+       ! abstraction.
 
 ! Array arguments with intent(in)
 REAL(KIND=real_jlslsm), INTENT(IN) :: net_abstracted_river_rp(np_rivers)
@@ -198,14 +201,16 @@ END IF   ! end rivers_first
 ! Processing for each timestep
 !-----------------------------------------------------------------------------
 
-!------------------------------------------------------------------------------
-! Remove water abstracted from river - before any other process alters the
-! amount stored. The units of the abstraction are converted from kg to m3.
-!------------------------------------------------------------------------------
-DO ip = 1, np_rivers
-  rivers%rfm_surfstore_rp(ip) = rivers%rfm_surfstore_rp(ip)                    &
-                                - net_abstracted_river_rp(ip) / rho_water
-END DO
+IF ( sw_river_source > 0 ) THEN
+  !----------------------------------------------------------------------------
+  ! Remove water abstracted from river - before any other process alters the
+  ! amount stored. The units of the abstraction are converted from kg to m3.
+  !----------------------------------------------------------------------------
+  DO ip = 1, np_rivers
+    rivers%rfm_surfstore_rp(ip) = rivers%rfm_surfstore_rp(ip)                  &
+                                  - net_abstracted_river_rp(ip) / rho_water
+  END DO
+END IF
 
 !-----------------------------------------------------------------------------
 ! Convert units and initialise values for next timestep.
