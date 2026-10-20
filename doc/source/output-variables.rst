@@ -479,7 +479,7 @@ Rivers
 |                               | Only available if :nml:mem:`JULES_RIVERS::l_rivers` = TRUE and                                |            |
 |                               | :nml:mem:`JULES_RIVERS::l_minor_reservoirs` = TRUE.                                           |            |
 +-------------------------------+-----------------------------------------------------------------------------------------------+------------+
-| ``minor_res_frac``            | Catchment area of minor reservoirs as fraction of area of gridbox                             | np_rivers  |
+| ``minor_res_frac``            | Catchment area of minor reservoirs as fraction of area of gridbox.                             | np_rivers  |
 |                               | Only available if :nml:mem:`JULES_RIVERS::l_rivers` = TRUE and                                |            |
 |                               | :nml:mem:`JULES_RIVERS::l_minor_reservoirs` = TRUE.                                           |            |
 +-------------------------------+-----------------------------------------------------------------------------------------------+------------+

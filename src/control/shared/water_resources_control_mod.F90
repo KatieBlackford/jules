@@ -992,7 +992,7 @@ IF ( l_allocate ) THEN
   ALLOCATE(river_storage_global(land_size_rivers), STAT = ERROR)
   error_sum = error_sum + ERROR
 
-  ! Return flows to groundater and rivers are both needed at full size, even
+  ! Return flows to groundwater and rivers are both needed at full size, even
   ! if either source is not active.
   ALLOCATE(return_flow_gw_global(land_size), STAT = ERROR)
   error_sum = error_sum + ERROR

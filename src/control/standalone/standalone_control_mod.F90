@@ -278,7 +278,7 @@ REAL ::                                                                        &
     !Total resistance factor, fracaero_t+(1-fracaero_t)*RESFS for snow-free
     !land, 1 for snow.
   rhokh(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),                  &
-    ! Grid-box surfac<e exchange coefficients
+    ! Grid-box surface exchange coefficients
   rhokh_surft(land_pts,nsurft),                                                &
     ! Surface exchange coefficients for land tiles
   rhokh_sice(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end,nice_use),    &

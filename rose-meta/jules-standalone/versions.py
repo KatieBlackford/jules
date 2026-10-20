@@ -52,7 +52,7 @@ class vn82_t141(MacroUpgrade):
     BEFORE_TAG = "vn8.2"
     AFTER_TAG = "vn8.2_t141"
 
-    def upgrade(self,config, meta_config=None):
+    def upgrade(self, config, meta_config=None):
         """Upgrade a JULES runtime app configuration."""
 
         self.rename_setting(config, ["namelist:fire_switches"],

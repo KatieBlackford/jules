@@ -580,7 +580,7 @@ IF ( rivers_call ) THEN
     ! Allocate abstraction from rivers.
     IF ( .NOT. l_oasis_rivers .AND. sw_river_source > 0                        &
          .AND. is_master_task() ) THEN
-      ! Water resource code will calclate abstraction.
+      ! Water resource code will calculate abstraction.
       tmp_river_size = np_rivers
     ELSE
       ! Allocate at minimum size.
