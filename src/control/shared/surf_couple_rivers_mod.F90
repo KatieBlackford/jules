@@ -603,7 +603,7 @@ IF ( rivers_call ) THEN
     IF ( error_sum /= 0 ) THEN
       errorstatus = 10
       CALL ereport( RoutineName, errorstatus,                                  &
-                     "Error related to allocation of abstraction variables." )
+                     "Error allocating river coupling variables." )
     ELSE
       ! Initialise abstraction from minor reservoirs to zero - this value is
       ! passed to subroutine rivers_route_rp and used if l_minor_reservoirs=T

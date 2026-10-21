@@ -895,9 +895,7 @@ CASE ( jules )
       !INTEGER, INTENT(INOUT)
       a_steps_since_riv,                                                       &
       !REAL, INTENT (INOUT)
-      tot_surf_runoff_gb, tot_sub_runoff_gb,                                   &
-      rivers%tot_abstracted_minor_res_global,                                  &
-      rivers%tot_net_abstracted_river_global, acc_lake_evap_gb,                &
+      tot_surf_runoff_gb, tot_sub_runoff_gb,acc_lake_evap_gb,                  &
       wtrac_jls%tot_surf_runoff_gb, wtrac_jls%tot_sub_runoff_gb,               &
       wtrac_jls%acc_lake_evap_gb,                                              &
       !REAL, INTENT (OUT)

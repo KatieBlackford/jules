@@ -37,7 +37,7 @@ IMPLICIT NONE
 ! Array arguments with INTENT(IN)
 !------------------------------------------------------------------------------
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
-  abstracted_minor_res_rp(np_rivers),                                          &
+  abstracted_minor_res_rp(:),                                                  &
     ! Water abstracted from minor reservoirs (kg).
   minor_res_capacity(np_rivers),                                               &
      ! Storage capacity of minor reservoirs (kg).

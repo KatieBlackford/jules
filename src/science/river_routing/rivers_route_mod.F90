@@ -76,10 +76,10 @@ INTEGER, INTENT(IN) ::                                                         &
     ! abstraction.
 
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
-  abstracted_minor_res_rp(np_rivers),                                          &
+  abstracted_minor_res_rp(:),                                                  &
     ! Water abstracted from minor reservoirs over river timestep, on river
     ! points (kg).
-  net_abstracted_river_rp(np_rivers)
+  net_abstracted_river_rp(:)
     ! Water abstracted from rivers over river timestep, on river points (kg).
 
 !------------------------------------------------------------------------------

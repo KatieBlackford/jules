@@ -75,7 +75,7 @@ INTEGER, INTENT(IN) ::                                                         &
 
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
 !  arrays with intent(in)
-     net_abstracted_river_rp(np_rivers),                                       &
+     net_abstracted_river_rp(:),                                               &
      !  Water abstracted from rivers over river timestep (kg).
      sfc_runoff(np_rivers)                                                     &
      !  average rate of surface runoff since last rivers call (kg m-2 s-1)

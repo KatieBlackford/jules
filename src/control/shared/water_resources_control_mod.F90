@@ -575,9 +575,10 @@ IF ( l_water_res_call ) THEN
     ! Calculate the net abstraction from rivers.
     !--------------------------------------------------------------------------
     IF ( sw_river_source > 0 ) THEN
-      CALL calc_river_flux( global_land_pts, return_flow_river_global,         &
-                            sw_abstracted_global(:,sw_river_source),           &
-                            net_abstracted_river_global )
+      CALL calc_net_river_abstraction( global_land_pts,                        &
+                                       return_flow_river_global,               &
+                                       sw_abstracted_global(:,sw_river_source),&
+                                       net_abstracted_river_global )
     END IF
 
   END IF  !  is_master_task
@@ -886,7 +887,7 @@ IMPLICIT NONE
 LOGICAL, INTENT(IN) ::                                                         &
   l_allocate
     ! TRUE indicates this call will allocate arrays.
-    ! FALSE indicates this call wil ldeallocate arrays.
+    ! FALSE indicates this call wil deallocate arrays.
 
 !------------------------------------------------------------------------------
 ! Local parameters
@@ -1515,9 +1516,10 @@ END SUBROUTINE redirect_return_flows
 
 !##############################################################################
 !##############################################################################
-SUBROUTINE calc_river_flux( global_land_pts, return_flow_river_global,         &
-                            sw_abstracted_river_global,                        &
-                            net_abstracted_river_global )
+SUBROUTINE calc_net_river_abstraction( global_land_pts,                        &
+                                       return_flow_river_global,               &
+                                       sw_abstracted_river_global,             &
+                                       net_abstracted_river_global )
 
 !------------------------------------------------------------------------------
 ! Description:
@@ -1552,7 +1554,7 @@ REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
 !------------------------------------------------------------------------------
 ! Local parameters
 !------------------------------------------------------------------------------
-CHARACTER(LEN=*), PARAMETER :: RoutineName = 'CALC_RIVER_FLUX'
+CHARACTER(LEN=*), PARAMETER :: RoutineName = 'CALC_NET_RIVER_ABSTRACTION'
 
 !------------------------------------------------------------------------------
 ! Local variables.
@@ -1572,7 +1574,7 @@ END DO
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
-END SUBROUTINE calc_river_flux
+END SUBROUTINE calc_net_river_abstraction
 
 !##############################################################################
 
