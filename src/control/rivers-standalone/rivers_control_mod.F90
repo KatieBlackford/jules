@@ -123,12 +123,8 @@ REAL ::                                                                        &
   twatstor(river_row_length, river_rows),                                      &
   abstracted_minor_res_global(land_pts),                                       &
     ! Water abstracted from minor reservoirs (kg).
-  net_abstracted_river_global(land_pts),                                       &
+  net_abstracted_river_global(land_pts)
   ! Net abstraction from rivers (kg m-2)
-  tot_abstracted_minor_res_global(land_pts),                                   &
-    ! Water abstracted from minor reservoirs over river timestep (kg).
-  tot_net_abstracted_river_global(land_pts)
-    ! Water abstracted from rivers over river timestep (kg m-2).
 
 REAL(KIND=real_jlslsm) ::                                                      &
   !Passed between river routing and UM diagnostics_riv only
@@ -146,8 +142,6 @@ CHARACTER(LEN=*), PARAMETER  :: RoutineName = 'CONTROL'
 ! Abstractions of water are zero in rivers-only configuration.
 abstracted_minor_res_global(:)     = 0.0
 net_abstracted_river_global(:)     = 0.0
-tot_abstracted_minor_res_global(:) = 0.0
-tot_net_abstracted_river_global(:) = 0.0
 
 SELECT CASE ( lsm_id )
 CASE ( rivers )
@@ -162,8 +156,7 @@ CASE ( rivers )
      a_steps_since_riv,                                                        &
      !REAL, INTENT (INOUT)
      river%tot_surf_runoff_gb, river%tot_sub_runoff_gb,                        &
-     tot_abstracted_minor_res_global,                                          &
-     tot_net_abstracted_river_global, river%acc_lake_evap_gb,                  &
+     river%acc_lake_evap_gb,                                                   &
      wtrac_jls%tot_surf_runoff_gb, wtrac_jls%tot_sub_runoff_gb,                &
      wtrac_jls%acc_lake_evap_gb,                                               &
      !REAL, INTENT (OUT)

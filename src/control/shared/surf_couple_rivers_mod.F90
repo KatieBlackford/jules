@@ -23,8 +23,7 @@ SUBROUTINE surf_couple_rivers(                                                 &
    !INTEGER, INTENT(INOUT)
    a_steps_since_riv,                                                          &
    !REAL, INTENT (INOUT)
-   tot_surf_runoff_gb, tot_sub_runoff_gb, tot_abstracted_minor_res_global,     &
-   tot_net_abstracted_river_global, acc_lake_evap_gb,                          &
+   tot_surf_runoff_gb, tot_sub_runoff_gb, acc_lake_evap_gb,                    &
    tot_surf_runoff_gb_wtrac, tot_sub_runoff_gb_wtrac,                          &
    acc_lake_evap_gb_wtrac,                                                     &
    !REAL, INTENT (OUT)
@@ -191,10 +190,6 @@ REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
     ! Average rate of surface runoff over river timestep (kg m-2 s-1).
   tot_sub_runoff_gb(land_pts),                                                 &
     ! Average rate of subsurface runoff over river timestep (kg m-2 s-1).
-  tot_abstracted_minor_res_global(global_land_pts),                            &
-    ! Water abstracted from minor reservoirs over river timestep (kg).
-  tot_net_abstracted_river_global(global_land_pts),                            &
-    ! Water abstracted from rivers over river timestep (kg).
   acc_lake_evap_gb(row_length,rows),                                           &
   tot_surf_runoff_gb_wtrac(land_pts,n_wtrac_jls),                              &
   tot_sub_runoff_gb_wtrac(land_pts,n_wtrac_jls),                               &
@@ -369,12 +364,12 @@ IF ( a_steps_since_riv == 0 ) THEN
   IF ( is_master_task() ) THEN
     ! Initialise the accumulated abstraction from rivers.
     IF ( sw_river_source > 0 ) THEN
-      tot_net_abstracted_river_global(:) = 0.0
+      rivers%tot_net_abstracted_river_global(:) = 0.0
     END IF
 
     ! Initialise the accumulated abstraction from minor reservoirs.
     IF ( l_water_resources .AND. l_minor_reservoirs ) THEN
-      tot_abstracted_minor_res_global(:) = 0.0
+      rivers%tot_abstracted_minor_res_global(:) = 0.0
     END IF
   END IF
 
@@ -422,14 +417,14 @@ ELSE
     IF ( sw_river_source > 0 ) THEN
       CALL accumulate_abstraction( global_land_pts,                            &
                                    net_abstracted_river_global,                &
-                                   tot_net_abstracted_river_global )
+                                   rivers%tot_net_abstracted_river_global )
     END IF
 
     ! Accumulate abstraction from minor reservoirs.
     IF ( l_water_resources .AND. l_minor_reservoirs ) THEN
       CALL accumulate_abstraction( global_land_pts,                            &
                                    abstracted_minor_res_global,                &
-                                   tot_abstracted_minor_res_global )
+                                   rivers%tot_abstracted_minor_res_global )
     END IF
   END IF
 
@@ -681,7 +676,7 @@ IF ( rivers_call ) THEN
                                   rivers%map_river_to_land_points,             &
                                   rivers%global_land_index,                    &
                                   rivers%rivers_index_rp,                      &
-                                  tot_net_abstracted_river_global,             &
+                                  rivers%tot_net_abstracted_river_global,      &
                                   net_abstracted_river_rp )
         END IF
 
@@ -691,7 +686,7 @@ IF ( rivers_call ) THEN
                                   rivers%map_river_to_land_points,             &
                                   rivers%global_land_index,                    &
                                   rivers%rivers_index_rp,                      &
-                                  tot_abstracted_minor_res_global,             &
+                                  rivers%tot_abstracted_minor_res_global,      &
                                   abstracted_minor_res_rp )
         END IF
 

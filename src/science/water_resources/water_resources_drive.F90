@@ -669,10 +669,10 @@ water_removed(:)     = 0.0
 DO i = 1, nwater_use
 
   !---------------------------------------------------------------------------
-  ! Set the fraction of flow that is returned for this water use. Return 
-  ! flows for each use are redirected in redirect_return_flows to either 
-  ! groundwater or rivers depending on the model configuration. The 
-  ! complementary fraction is removed from the system (e.g. by being 
+  ! Set the fraction of flow that is returned for this water use. Return
+  ! flows for each use are redirected in redirect_return_flows to either
+  ! groundwater or rivers depending on the model configuration. The
+  ! complementary fraction is removed from the system (e.g. by being
   ! incorporated into a product).
   !---------------------------------------------------------------------------
   IF ( i == use_domestic ) THEN
