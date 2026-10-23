@@ -386,6 +386,11 @@ REAL(KIND=real_jlslsm) ::                                                      &
   supply_irrig(land_pts)
     ! Water supplied for irrigation (kg).
 
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
 !------------------------------------------------------------------------------
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
@@ -677,6 +682,11 @@ INTEGER ::                                                                     &
   i
     ! Loop counter.
 
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
 !------------------------------------------------------------------------------
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
@@ -767,6 +777,11 @@ REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
 !------------------------------------------------------------------------------
 CHARACTER(LEN=*), PARAMETER :: RoutineName = 'ACCUMULATE_DEMAND'
 
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
 !------------------------------------------------------------------------------
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
@@ -836,6 +851,11 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName = 'ADD_CONVEYANCE_LOSS'
 !------------------------------------------------------------------------------
 INTEGER :: i
   !  Loop counter.
+
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
 
 !------------------------------------------------------------------------------
 !end of header
@@ -916,6 +936,11 @@ INTEGER ::                                                                     &
     ! Size for river arrays.
   land_size_sw
     ! Size for surface water arrays.
+
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
 
 !------------------------------------------------------------------------------
 !end of header
@@ -1138,6 +1163,11 @@ REAL(KIND=real_jlslsm) ::                                                      &
   rland_global(global_land_pts)
     ! Workspace for a field on global_land_pts.
 
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
 !------------------------------------------------------------------------------
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
@@ -1242,6 +1272,11 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName = 'SCATTER_GLOBAL_WATER'
 ! Local scalar variables
 !------------------------------------------------------------------------------
 INTEGER :: i  !  loop counter
+
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
 
 !------------------------------------------------------------------------------
 !end of header
@@ -1373,6 +1408,11 @@ INTEGER ::                                                                     &
   errorstatus
     ! Error value.
 
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
 !------------------------------------------------------------------------------
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
@@ -1476,6 +1516,11 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName = 'REDIRECT_RETURN_FLOWS'
 INTEGER ::                                                                     &
   l ! Loop counter.
 
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
+
 !------------------------------------------------------------------------------
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
@@ -1561,6 +1606,11 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName = 'CALC_NET_RIVER_ABSTRACTION'
 !------------------------------------------------------------------------------
 INTEGER ::                                                                     &
   l ! Loop counter.
+
+! Dr Hook variables
+INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
+INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
+REAL(KIND=jprb)               :: zhook_handle
 
 !------------------------------------------------------------------------------
 !end of header
