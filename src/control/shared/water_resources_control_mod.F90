@@ -32,7 +32,7 @@ USE um_types, ONLY: real_jlslsm
 IMPLICIT NONE
 
 PRIVATE  !  Private scope by default.
-PUBLIC water_resources_control
+PUBLIC water_resources_control, initialise_water_resources
 
 ! Module parameters.
 
@@ -163,12 +163,6 @@ USE parallel_mod, ONLY: is_master_task
 
 USE theta_field_sizes, ONLY: row_length=>t_i_length, rows=>t_j_length
 
-#if defined(UM_JULES)
-USE timestep_mod, ONLY: timestep_number
-#else
-USE model_time_mod, ONLY: timestep_number
-#endif
-
 USE update_soil_water_mod, ONLY: update_soil_water
 
 USE water_resources_drive_mod, ONLY: water_resources_drive
@@ -192,6 +186,9 @@ INTEGER, INTENT(IN) ::                                                         &
     ! Index of land points.
   map_river_to_land_points(np_rivers),                                         &
     ! List of coincident land point numbers, on river points.
+  priority_order(land_pts,nwater_use),                                         &
+    ! Priorities of water demands at each gridpoint, in order of decreasing
+    ! priority. Values are the index in multi-sector arrays.
   rivers_index_rp(np_rivers)
     ! Index of points where routing is calculated.
 
@@ -295,11 +292,6 @@ REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
 !------------------------------------------------------------------------------
 ! Array arguments with INTENT(OUT)
 !------------------------------------------------------------------------------
-INTEGER, INTENT(OUT) ::                                                        &
-  priority_order(land_pts,nwater_use)
-    ! Priorities of water demands at each gridpoint, in order of decreasing
-    ! priority. Values are the index in multi-sector arrays.
-
 ! Coupling variables and diagnostics.
 REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
   !----------------------------------------------------------------------------
@@ -394,13 +386,6 @@ REAL(KIND=jprb)               :: zhook_handle
 !------------------------------------------------------------------------------
 !end of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
-
-!------------------------------------------------------------------------------
-! On the first call to this routine, initialise further variables.
-!------------------------------------------------------------------------------
-IF ( timestep_number == 1 ) THEN
-  CALL initialise_water_resources( priority_order )
-END IF
 
 !------------------------------------------------------------------------------
 ! Work out if the water resource model is to be called this timestep.
