@@ -682,14 +682,14 @@ USE ancil_info, ONLY: land_pts
 
 USE jules_fields_mod, ONLY: jules_vars
 
-USE jules_water_resources_mod, ONLY:                                          &
-  dlat, dlon, n_nonlocal_max, nonlocal_abs_max 
+USE jules_water_resources_mod, ONLY:                                           &
+  dlat, dlon, n_nonlocal_max, nonlocal_abs_max
 
-USE missing_data_mod, ONLY: imdi 
+USE missing_data_mod, ONLY: imdi
 
-USE model_grid_mod, ONLY: global_land_pts, latitude, longitude 
+USE model_grid_mod, ONLY: global_land_pts, latitude, longitude
 
-USE parallel_mod, ONLY: gather_land_field, is_master_task 
+USE parallel_mod, ONLY: gather_land_field, is_master_task
 
 USE theta_field_sizes, ONLY: row_length=>t_i_length, rows=>t_j_length
 
@@ -700,14 +700,14 @@ IMPLICIT NONE
 !------------------------------------------------------------------------------
 ! Array arguments with INTENT(IN)
 !------------------------------------------------------------------------------
-INTEGER, INTENT(IN) ::                                                        &
+INTEGER, INTENT(IN) ::                                                         &
   land_index(land_pts)
     ! Index of land points
 
 !------------------------------------------------------------------------------
 ! Array arguments with INTENT(IN OUT)
 !------------------------------------------------------------------------------
-INTEGER, ALLOCATABLE, INTENT(IN OUT) ::                                       &
+INTEGER, ALLOCATABLE, INTENT(IN OUT) ::                                        &
   nonlocal_network(:,:)
     ! List of gridbox numbers that nonlocal abstractions can draw from
 
@@ -718,17 +718,17 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName = 'INITIALISE_NONLOCAL_ABSTRACTION'
 !------------------------------------------------------------------------------
 INTEGER :: i, j, k, l, x, y, land_size
 
-REAL(KIND=real_jlslsm) :: current_lat, current_lon, distance_lat, distance_lon 
+REAL(KIND=real_jlslsm) :: current_lat, current_lon, distance_lat, distance_lon
 REAL(KIND=real_jlslsm) :: current_el
 
 !------------------------------------------------------------------------------
 ! Local array variables.
 !------------------------------------------------------------------------------
-REAL(KIND=real_jlslsm) ::                                                     &
-  lat_land(land_pts), lon_land(land_pts), elev_land(land_pts) 
+REAL(KIND=real_jlslsm) ::                                                      &
+  lat_land(land_pts), lon_land(land_pts), elev_land(land_pts)
     ! Latitude, longitude and elevation at land points (current task)
 
-REAL(KIND=real_jlslsm), ALLOCATABLE ::                                        &
+REAL(KIND=real_jlslsm), ALLOCATABLE ::                                         &
   lat_global(:), lon_global(:), elev_global(:)
     ! latitude, longitude and elevation at land points (global grid)
 
@@ -754,7 +754,7 @@ DO l = 1, land_pts
 END DO
 
 !------------------------------------------------------------------------------
-! Gather to the global grid 
+! Gather to the global grid
 !------------------------------------------------------------------------------
 IF ( is_master_task() ) THEN
   land_size = global_land_pts
@@ -771,13 +771,13 @@ CALL gather_land_field( lon_land, lon_global )
 CALL gather_land_field( elev_land, elev_global )
 
 !------------------------------------------------------------------------------
-! Allocate the network array. 
+! Allocate the network array.
 !------------------------------------------------------------------------------
 ALLOCATE( nonlocal_network(land_size,n_nonlocal_max) )
 nonlocal_network(:,:) = imdi
 
 !------------------------------------------------------------------------------
-! Build the network 
+! Build the network
 !------------------------------------------------------------------------------
 IF ( is_master_task() ) THEN
 
@@ -787,7 +787,7 @@ IF ( is_master_task() ) THEN
     current_lon = lon_global(l)
     current_el  = elev_global(l)
 
-    ! loop through expanding "rings" of neighouring gridboxes, and if gridbox is  
+    ! loop through expanding "rings" of neighouring gridboxes, and if gridbox is
     ! within radius then add to nonlocal_network
     DO j = 1, nonlocal_abs_max
       ! Add a small amount to the distance to ensure all gridboxes within radius
@@ -1357,7 +1357,7 @@ IF ( l_have_surface_water ) THEN
   CALL scatter_land_field( return_flow_sw_global, return_flow_sw )
   DO i = 1, n_sw_source
     CALL scatter_land_field( sw_abstracted_global(:,i), sw_abstracted(:,i) )
-    CALL scatter_land_field( nonlocal_abstracted_global(:,i),                 &
+    CALL scatter_land_field( nonlocal_abstracted_global(:,i),                  &
                              nonlocal_abstracted(:,i) )
   END DO
   CALL scatter_land_field( sw_avail_total_start_global, sw_avail_total )

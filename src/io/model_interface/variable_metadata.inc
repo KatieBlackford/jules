@@ -9385,7 +9385,7 @@ DATA metadata(724) / var_metadata(                                             &
 !-----------------------------------------------------------------------------
 DATA metadata(725) / var_metadata(                                             &
 ! String identifier
-    'water_demand_nl',                                                               &
+    'water_demand_nl',                                                         &
 ! Variable type
     var_type_surface,                                                          &
 ! Long name

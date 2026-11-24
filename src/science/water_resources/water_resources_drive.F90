@@ -101,7 +101,7 @@ REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
   demand_unmet(global_land_pts,nwater_use),                                    &
     ! The part of the demand for water that is not satisfied (kg).
   demand_nl(global_land_pts,nwater_use),                                       &
-    ! The part of the surface-water demand redirected to non-local sources 
+    ! The part of the surface-water demand redirected to non-local sources
     !(kg).
   gw_abstracted(global_land_pts),                                              &
     ! Water abstracted from renewable groundwater (kg).
@@ -302,18 +302,18 @@ IMPLICIT NONE
 !------------------------------------------------------------------------------
 ! Scalar arguments with INTENT(IN)
 !------------------------------------------------------------------------------
-INTEGER, INTENT(IN) ::                                                        &
+INTEGER, INTENT(IN) ::                                                         &
   global_land_pts
     ! Number of land points in the full model grid.
 
 !------------------------------------------------------------------------------
 ! Array arguments with INTENT(IN)
 !------------------------------------------------------------------------------
-INTEGER, INTENT(IN) ::                                                        &
+INTEGER, INTENT(IN) ::                                                         &
   nonlocal_network(global_land_pts,n_nonlocal_max)
     ! List of gridbox numbers that nonlocal abstractions can draw from.
 
-REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   sw_avail(global_land_pts,n_sw_source)
     ! Surface water available for abstraction at the start of the water
     ! resource timestep (kg).
@@ -329,7 +329,7 @@ REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
 !------------------------------------------------------------------------------
 ! Array arguments with INTENT(OUT)
 !------------------------------------------------------------------------------
-REAL(KIND=real_jlslsm), INTENT(OUT) ::                                        &
+REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
   demand_nl(global_land_pts,nwater_use)
     ! Surface-water demand to be met from non-local gridboxes (kg).
 
@@ -347,7 +347,7 @@ REAL(KIND=real_jlslsm) ::                                                      &
   nl_avail, l_avail, nl_demand, l_demand, local_abs
     ! Non-local and local water availability and demand, used to calculate      &
     ! fraction of demand to be met locally (local_abs)
-    
+
 !------------------------------------------------------------------------------
 ! Local array variables.
 !------------------------------------------------------------------------------
@@ -380,7 +380,7 @@ DO l = 1, global_land_pts
   n = 0
 
   IF ( l_demand /= 0.0 ) THEN
-    
+
     ! Loop through nonlocal network
     DO i = 1, n_nonlocal_max
       k = nonlocal_network(l,i)

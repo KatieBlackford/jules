@@ -67,7 +67,7 @@ NAMELIST  / jules_surf_hgt/ zero_height, l_elev_absolute_height, use_file,     &
                           FILE, surf_hgt_name, surf_hgt_io
 
 !-----------------------------------------------------------------------------
-! Initialise some of the variables that are read from the namelist. 
+! Initialise some of the variables that are read from the namelist.
 !-----------------------------------------------------------------------------
 zero_height               = .TRUE.  ! Default is to use zero height everywhere
 l_elev_absolute_height(:) = .FALSE. ! T - tiles have absolute heights above

@@ -89,7 +89,7 @@ TYPE :: water_resources_data_type
     demand_unmet(:,:),                                                         &
       ! The part of the demand for water that is not satisfied (kg).
     demand_nl(:,:),                                                            &
-      ! The part of the demand for surface water that is redirected to 
+      ! The part of the demand for surface water that is redirected to
       ! non-local sources (kg)
     gw_abstracted(:),                                                          &
       ! Water abstracted from renewable groundwater (kg).
@@ -101,7 +101,7 @@ TYPE :: water_resources_data_type
     sw_abstracted(:,:),                                                        &
       ! Water abstracted from surface water sources (kg).
     nonlocal_abstracted(:,:),                                                  &
-      ! Water abstracted from non-local surface water sources (kg).      
+      ! Water abstracted from non-local surface water sources (kg).
     sw_avail_total(:),                                                         &
       ! Surface water that is available for abstraction at start of timestep,
       ! summed over sources (kg).

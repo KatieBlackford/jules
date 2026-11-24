@@ -248,3 +248,45 @@ This file sets options for water resource modelling. It contains a single nameli
    :default: none
 
    The fraction of water that is returned after abstraction for livestock. Only used if :nml:mem:`l_water_livestock` = TRUE.
+
+
+.. nml:group:: Switches that allow and control the use of non-local abstractions
+
+
+   .. nml:member:: l_nonlocal_abstraction
+
+      :type: logical
+      :default: F
+
+      Switch to allow non-local abstractions.
+
+      TRUE
+          Consider non-local abstractions.
+      FALSE
+          Do not consider non-local abstractions.
+
+
+   .. nml:member:: nonlocal_abs_max
+
+      :type: integer
+      :permitted: > 0
+      :default: none
+
+      Number of gridboxes distant from which non-local abstractions are allowed to source water from to meet gridbox demands. Only used if :nml:mem:`l_nonlocal_abstraction` = TRUE.
+
+
+   .. nml:member:: dlat
+
+      :type: real
+      :default: none
+
+      Latitudinal size of gridbox (degrees), assuming regular grid. Only used if :nml:mem:`l_nonlocal_abstraction` = TRUE.
+
+
+   .. nml:member:: dlon
+
+      :type: real
+      :default: none
+
+      Longitudinal size of gridbox (degrees), assuming regular grid. Only used if :nml:mem:`l_nonlocal_abstraction` = TRUE.
+

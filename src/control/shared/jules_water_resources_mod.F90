@@ -151,7 +151,7 @@ INTEGER ::                                                                     &
     ! met from surface water.
   nonlocal_abs_max = imdi
     ! Number of gridboxes distant from which nonlocal abstractions are allowed
-    ! to source water from to meet gridbox demands 
+    ! to source water from to meet gridbox demands
 
 REAL(KIND=real_jlslsm) ::                                                      &
   rf_domestic = rmdi,                                                          &
@@ -168,7 +168,7 @@ REAL(KIND=real_jlslsm) ::                                                      &
     ! target for the fraction of demand that will be met from surface water.
   dlat = rmdi,                                                                 &
     ! Land gridbox size in latitude (degrees).
-  dlon = rmdi 
+  dlon = rmdi
     ! Land gridbox size in longitude(degrees).
 
 CHARACTER(LEN=name_len) ::                                                     &
@@ -312,7 +312,7 @@ IF ( l_water_resources ) THEN
     CALL ereport ( RoutineName, error_status,                                  &
                    "nstep_water_res must be at least 1." )
   END IF
-  
+
   !----------------------------------------------------------------------------
   ! Count the number of sectors to be considered, and check that at least one
   ! is selected.
@@ -501,26 +501,26 @@ IF ( l_water_resources ) THEN
   !-----------------------------------------------------------------------------
   IF ( l_nonlocal_abstraction ) THEN
     IF ( nonlocal_abs_max == imdi ) THEN
-      CALL ereport ( RoutineName, error_status,                               &
+      CALL ereport ( RoutineName, error_status,                                &
                    "nonlocal_abs_max not found." )
     END IF
     IF ( nonlocal_abs_max <= 0 ) THEN
-      CALL ereport ( RoutineName, error_status,                               &
+      CALL ereport ( RoutineName, error_status,                                &
                    "nonlocal_abs_max must be greater than 0." )
     END IF
-    
+
     n_nonlocal_max = 0
     DO i = 1, nonlocal_abs_max
       n_nonlocal_max = n_nonlocal_max + 8 * i
     END DO
     WRITE(*,*) 'n_nonlocal_max = ', n_nonlocal_max
-    
+
     IF ( dlat == rmdi ) THEN
-    CALL ereport ( RoutineName, error_status,                                 &
-                 "dlat not found." )
+      CALL ereport ( RoutineName, error_status,                                &
+                   "dlat not found." )
     END IF
     IF ( dlon == rmdi ) THEN
-      CALL ereport ( RoutineName, error_status,                               &
+      CALL ereport ( RoutineName, error_status,                                &
                  "dlon not found." )
     END IF
   END IF
