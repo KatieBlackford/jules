@@ -28,7 +28,9 @@ CONTAINS
 
 !##############################################################################
 
-SUBROUTINE rivers_route_rp(rivers)
+SUBROUTINE rivers_route_rp( sw_river_source, abstracted_res_rp,                &
+                            abstracted_minor_res_rp, net_abstracted_river_rp,  &
+                            rivers )
 
 !------------------------------------------------------------------------------
 !
@@ -42,8 +44,8 @@ SUBROUTINE rivers_route_rp(rivers)
 
 USE jules_rivers_mod, ONLY:                                                    &
 !  imported scalars with intent(in)
-     i_river_vn, rivers_camaflood, rivers_rfm, rivers_trip, np_rivers,         &
-     rivers_type
+     i_river_vn, l_reservoirs, l_minor_reservoirs, np_rivers, nstep_rivers,    &
+     rivers_camaflood, rivers_rfm, rivers_trip, rivers_type
 
 USE rivers_route_camaflood_mod, ONLY:                                          &
 !  imported procedures
@@ -57,11 +59,32 @@ USE rivers_route_trip_mod, ONLY:                                               &
 !  imported procedures
      rivers_route_trip
 
+USE route_minor_reservoirs_mod, ONLY:                                          &
+     route_minor_reservoirs
+
 USE jules_print_mgr, ONLY:                                                     &
   jules_message,                                                               &
   jules_print
 
 IMPLICIT NONE
+
+!------------------------------------------------------------------------------
+! Arguments with INTENT(IN)
+!------------------------------------------------------------------------------
+INTEGER, INTENT(IN) ::                                                         &
+  sw_river_source
+    ! A value > 0 indicates that rivers are used as a source of water for
+    ! abstraction.
+
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
+  abstracted_res_rp(:),                                                        &
+    ! Water abstracted from reservoirs over river timestep, on river
+    ! points (kg).
+  abstracted_minor_res_rp(:),                                                  &
+    ! Water abstracted from minor reservoirs over river timestep, on river
+    ! points (kg).
+  net_abstracted_river_rp(:)
+    ! Water abstracted from rivers over river timestep, on river points (kg).
 
 !------------------------------------------------------------------------------
 ! Arguments with INTENT(IN OUT)
@@ -71,7 +94,7 @@ TYPE(rivers_type), INTENT(IN OUT) :: rivers
 !------------------------------------------------------------------------------
 ! Local scalar variables
 !------------------------------------------------------------------------------
-INTEGER :: ip                !  loop counter
+INTEGER :: ip                        !  loop counter
 
 !------------------------------------------------------------------------------
 ! Local array variables
@@ -83,11 +106,32 @@ REAL(KIND=real_jlslsm) :: baseflow(np_rivers)
 !end of header
 
 !------------------------------------------------------------------------------
+! Route surface runoff through minor reservoirs.
+!------------------------------------------------------------------------------
+IF ( l_minor_reservoirs ) THEN
+  CALL route_minor_reservoirs( abstracted_minor_res_rp,                        &
+                               rivers%minor_res_capacity,                      &
+                               rivers%minor_res_frac,                          &
+                               rivers%rivers_boxareas_rp,                      &
+                               rivers%minor_res_storage,                       &
+                               rivers%rrun_surf_rp )
+END IF
+
+!------------------------------------------------------------------------------
 ! Calculate total runoff diagnostic.
 !------------------------------------------------------------------------------
 DO ip = 1, np_rivers
   rivers%rrun_rp(ip) = rivers%rrun_surf_rp(ip) + rivers%rrun_sub_surf_rp(ip)
 END DO
+
+!------------------------------------------------------------------------------
+! Update reservoir capacities at the start and on each year change.
+!------------------------------------------------------------------------------
+IF ( l_reservoirs ) THEN
+  CALL update_reservoirs( rivers%res_capacity,                                 &
+                          rivers%res_year,                                     &
+                          rivers%res_cap_current )
+END IF
 
 !------------------------------------------------------------------------------
 ! Call the routing science routine.
@@ -104,17 +148,29 @@ CASE ( rivers_camaflood )
                                rivers%rivers_outflow_rp )
 
 CASE ( rivers_rfm )
-  CALL rivers_route_rfm( rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,         &
+  CALL rivers_route_rfm( sw_river_source, net_abstracted_river_rp,             &
+                         rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,         &
                          rivers%rflow_rp, baseflow,                            &
+                         abstracted_res_rp,                                    &
                         !  imported river arrays
                          rivers)
 CASE ( rivers_trip )
-  CALL rivers_route_trip( rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,        &
+  CALL rivers_route_trip( sw_river_source, net_abstracted_river_rp,            &
+                          rivers%rrun_surf_rp, rivers%rrun_sub_surf_rp,        &
                           rivers%rflow_rp, baseflow, rivers%rivers_outflow_rp, &
                           rivers%rivers_next_rp, rivers%rivers_seq_rp,         &
-                          rivers%rivers_sto_rp,rivers%rivers_boxareas_rp,      &
+                          rivers%rivers_sto_rp, rivers%rivers_boxareas_rp,     &
                           rivers%rivers_lat_rp, rivers%rivers_lon_rp,          &
-                          rivers%inland_outflow_rp, rivers%land_fraction_rp  )
+                          rivers%inland_outflow_rp, rivers%land_fraction_rp,   &
+                          abstracted_res_rp,                                   &
+                          rivers%res_cap_current,                              &
+                          rivers%res_catch,                                    &
+                          rivers%res_critical, rivers%res_flood,               &
+                          rivers%res_emergency,                                &
+                          rivers%res_normal_release,                           &
+                          rivers%res_flood_release,                            &
+                          rivers%res_storage )
+
 CASE DEFAULT
   WRITE(jules_message,*) 'ERROR: rivers_drive: ' //                            &
                          'do not recognise i_river_vn=', i_river_vn
@@ -327,6 +383,58 @@ END IF
 DEALLOCATE(global_rivers_adj_on_landpts)
 
 END SUBROUTINE adjust_routestore
+
+!##############################################################################
+
+SUBROUTINE update_reservoirs( res_capacity, res_year,                          &
+            res_cap_current )
+
+USE jules_rivers_mod, ONLY:                                                    &
+! imported scalars
+  np_rivers
+
+USE time_info_mod, ONLY: current_model_time
+
+USE missing_data_mod, ONLY: imdi
+
+IMPLICIT NONE
+
+!------------------------------------------------------------------------------
+! Array arguments with intent(in).
+!------------------------------------------------------------------------------
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
+  res_capacity(np_rivers),                                                     &
+    ! Capacity of reservoirs (kg).
+  res_year(np_rivers)
+    ! Build year of reservoirs.
+
+!------------------------------------------------------------------------------
+! Array arguments with intent(inout).
+!------------------------------------------------------------------------------
+REAL(KIND=real_jlslsm), INTENT(IN OUT) ::                                      &
+  res_cap_current(np_rivers)
+    ! Capacity of currently active reservoirs (kg).
+
+!------------------------------------------------------------------------------
+! Local scalar variables.
+!------------------------------------------------------------------------------
+INTEGER :: i    ! Loop counter.
+INTEGER :: year ! Current model year.
+INTEGER, SAVE :: year_change = imdi ! year of last reservoir capacity update
+!end of header
+!------------------------------------------------------------------------------
+CALL current_model_time(year)
+
+IF ( year /= year_change ) THEN
+  DO i = 1, np_rivers
+    IF ( res_year(i) <= year ) THEN
+      res_cap_current(i) = res_capacity(i)
+    END IF
+  END DO
+  year_change = year
+END IF
+
+END SUBROUTINE update_reservoirs
 
 !##############################################################################
 

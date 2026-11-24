@@ -33,8 +33,12 @@ USE prognostics, ONLY:                                                         &
 USE jules_rivers_mod, ONLY:                                                    &
 ! 2D ancillary fields used during initialisation.
   channel_depth_grid, channel_width_grid, mean_sea_level_grid,                 &
-  river_distance_grid, river_elevation_grid, river_length_grid,                &
-  river_manning_grid, river_nextx_grid, river_nexty_grid
+  minor_res_capacity_grid, minor_res_frac_grid, river_distance_grid,           &
+  river_elevation_grid, river_length_grid, river_manning_grid,                 &
+  river_nextx_grid, river_nexty_grid,                                          &
+  res_capacity_grid, res_catch_grid, res_year_grid,                            &
+  res_critical_grid, res_flood_grid, res_emergency_grid,                       &
+  res_normal_release_grid, res_flood_release_grid
 
 USE jules_soil_mod, ONLY:                                                      &
   sm_levels, l_tile_soil, l_broadcast_ancils
@@ -1554,7 +1558,7 @@ CASE ( 'deposition_n' )
     trif_vars%deposition_n_gb(:) = const_val
   END IF
 
-CASE ( 'trif_vars%g_burn_pft' )
+CASE ( 'g_burn_pft' )
   IF ( PRESENT(cube) ) THEN
     cube_land = map_to_land(cube)
     CALL cube_get_data(cube_land, trif_vars%g_burn_pft)
@@ -2431,6 +2435,14 @@ CASE ( 'rivers_sto_rp' )
     rivers%rivers_sto_rp(:) = const_val
   END IF
 
+CASE ( 'minor_res_storage' )
+  IF ( PRESENT(cube) ) THEN
+    cube_land = cube_create([ SIZE(cube%values) ])
+    CALL cube_get_data(cube_land, rivers%minor_res_storage)
+  ELSE
+    rivers%minor_res_storage(:) = const_val
+  END IF
+
 CASE ( 'rivers_outflow_rp' )
   IF ( PRESENT(cube) ) THEN
     cube_land = cube_create([ SIZE(cube%values) ])
@@ -2487,6 +2499,14 @@ CASE ( 'sea_level_lp' )
     rivers%sea_level_lp(:) = const_val
   END IF
 
+CASE ( 'res_storage' )
+  IF ( PRESENT(cube) ) THEN
+    cube_land = cube_create([ SIZE(cube%values) ])
+    CALL cube_get_data(cube_land, rivers%res_storage)
+  ELSE
+    rivers%res_storage(:) = const_val
+  END IF
+
   !-----------------------------------------------------------------------------
   ! Overbank inundation variables
   !-----------------------------------------------------------------------------
@@ -2510,6 +2530,76 @@ CASE ( 'logn_stdev' )
     CALL cube_get_data(cube, logn_stdev)
   ELSE
     logn_stdev(:,:) = const_val
+  END IF
+
+CASE ( 'res_capacity_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_capacity_grid)
+  ELSE
+    res_capacity_grid(:,:) = const_val
+  END IF
+
+CASE ( 'res_catch_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_catch_grid)
+  ELSE
+    res_catch_grid(:,:) = const_val
+  END IF
+
+CASE ( 'res_year_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_year_grid)
+  ELSE
+    res_year_grid(:,:) = const_val
+  END IF
+
+CASE ( 'res_critical_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_critical_grid)
+  ELSE
+    res_critical_grid(:,:) = const_val
+  END IF
+
+CASE ( 'res_flood_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_flood_grid)
+  ELSE
+    res_flood_grid(:,:) = const_val
+  END IF
+
+CASE ( 'res_emergency_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_emergency_grid)
+  ELSE
+    res_emergency_grid(:,:) = const_val
+  END IF
+
+CASE ( 'res_normal_release_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_normal_release_grid)
+  ELSE
+    res_normal_release_grid(:,:) = const_val
+  END IF
+
+CASE ( 'res_flood_release_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, res_flood_release_grid)
+  ELSE
+    res_flood_release_grid(:,:) = const_val
+  END IF
+
+CASE ( 'minor_res_capacity_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, minor_res_capacity_grid)
+  ELSE
+    minor_res_capacity_grid(:,:) = const_val
+  END IF
+
+CASE ( 'minor_res_frac_grid' )
+  IF ( PRESENT(cube) ) THEN
+    CALL cube_get_data(cube, minor_res_frac_grid)
+  ELSE
+    minor_res_frac_grid(:,:) = const_val
   END IF
 
   !-----------------------------------------------------------------------------
